@@ -1,5 +1,3 @@
-### This file is now on Github yayyy!!!
-
 import tkinter as tk
 from tkinter import *
 from tkinter import messagebox as mb
