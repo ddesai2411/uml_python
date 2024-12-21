@@ -1,0 +1,56 @@
+table {
+  border-spacing: 0;
+  width: 100%;
+  border: 1px solid #ddd;
+  font-family: Tahoma;
+  font-size: 0.87vw;
+}
+
+th {
+  cursor: pointer;
+}
+
+th, td {
+  text-align: left;
+  padding: 8px;
+}
+
+tr:nth-child(even) {
+  background-color: #f2f2f2
+}
+
+h2 {
+	font-family: Tahoma;
+	font-size: 1.6vw;
+}
+
+h3 {
+	font-family: Tahoma;
+	font-size: 0.87vw;
+}
+
+p.i {
+	font-family: Tahoma;
+	font-style: italic;
+	font-size: 0.7vw;
+}
+
+p.b1 {
+	font-family: Tahoma;
+	font-style: bold;
+	font-size: 0.7vw;
+}
+
+
+.button {
+  background-color: #00549F;
+  border: none;
+  color: white;
+  padding: 5px 8px;
+  text-align: center;
+  font-family: Tahoma;
+  font-style: bold;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 0.78vw;
+}

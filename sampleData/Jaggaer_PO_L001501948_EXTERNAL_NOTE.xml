@@ -1,0 +1,629 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE PurchaseOrderMessage SYSTEM
+        "https://integrations.sciquest.com/app_docs/dtd/po/PO_2_5.dtd">
+<PurchaseOrderMessage version="2.5">
+    <Header>
+        <MessageId>06f4eba2-c70c-40ff-af9e-018bd3225143</MessageId>
+        <Timestamp>2023-11-15T08:18:43.524-05:00</Timestamp>
+        <Authentication>
+            <Identity>UMASS30000814</Identity>
+            <SharedSecret>Prod$$POXMLIMPORT$$</SharedSecret>
+        </Authentication>
+    </Header>
+    <PurchaseOrder>
+        <POHeader id="149880014">
+            <WorkflowStatus status="Completed"/>
+            <SupplierStatus status="SentToSupplier">
+                <HasBackorderedItems>false</HasBackorderedItems>
+                <HasCancelledItems>false</HasCancelledItems>
+                <HasSupplierEdits>false</HasSupplierEdits>
+                <HasShippedItems>false</HasShippedItems>
+            </SupplierStatus>
+            <APStatus status="Open"/>
+            <RevisionNumber>1</RevisionNumber>
+            <RevisionDate>2023-11-15T08:18:13.817-05:00</RevisionDate>
+            <PONumber>L001501948</PONumber>
+            <AlternatePONumber/>
+            <Requestor>
+                <UserProfile username="10016546">
+                    <FirstName>Hector</FirstName>
+                    <LastName>Valdes</LastName>
+                    <Email>Hector_Valdes@uml.edu</Email>
+                    <Phone>
+                        <TelephoneNumber>
+                            <CountryCode>1</CountryCode>
+                            <AreaCode>978</AreaCode>
+                            <Number>9343131</Number>
+                        </TelephoneNumber>
+                    </Phone>
+                    <BusinessUnit internalName="UMLOW">Lowell</BusinessUnit>
+                </UserProfile>
+            </Requestor>
+            <BuyerInfo>
+                <BuyerContactName>Hector Valdes</BuyerContactName>
+                <Email>Hector_Valdes@uml.edu</Email>
+                <Phone>
+                    <TelephoneNumber>
+                        <CountryCode>1</CountryCode>
+                        <AreaCode>978</AreaCode>
+                        <Number>9343131</Number>
+                    </TelephoneNumber>
+                </Phone>
+            </BuyerInfo>
+            <BusinessUnit internalName="UMLOW">Lowell</BusinessUnit>
+            <Priority>Normal</Priority>
+            <CreateDateTime>2023-11-15T08:17:47.547-05:00</CreateDateTime>
+            <InitialRevisionDateTime>2023-11-15</InitialRevisionDateTime>
+            <Supplier id="15272686">
+                <Name>GGD CONSULTING ENGINEERS INC</Name>
+                <SupplierNumber>0000015414</SupplierNumber>
+                <ThirdPartyRefNumber>0000015414/WH=N</ThirdPartyRefNumber>
+                <DUNS>075701771</DUNS>
+                <FulfillmentAddressInternalId>111164537</FulfillmentAddressInternalId>
+                <FulfillmentAddressId>1</FulfillmentAddressId>
+                <FulfillmentAddressThirdPartyId>001</FulfillmentAddressThirdPartyId>
+                <ContactInfo type="main">
+                    <Name>Madeline Toste</Name>
+                    <Phone>
+                        <TelephoneNumber>
+                            <CountryCode>1</CountryCode>
+                            <AreaCode>508</AreaCode>
+                            <Number>9985700</Number>
+                        </TelephoneNumber>
+                    </Phone>
+                    <Fax>
+                        <TelephoneNumber>
+                            <CountryCode>1</CountryCode>
+                            <AreaCode>508</AreaCode>
+                            <Number>9980883</Number>
+                        </TelephoneNumber>
+                    </Fax>
+                    <Email>madeline_toste@g-g-d.com</Email>
+                    <ContactAddress>
+                        <AddressLine linenumber="1">375 FAUNCE CORNER RD STE D</AddressLine>
+                        <City>DARTMOUTH</City>
+                        <State>MA</State>
+                        <PostalCode>02747-1271</PostalCode>
+                        <Country isocountrycode="US">United States</Country>
+                    </ContactAddress>
+                </ContactInfo>
+                <ContactInfo type="technical"/>
+                <FederalId>042566128</FederalId>
+            </Supplier>
+            <OrderDistribution>
+                <DistributionMethod type="html_email">
+                    <Email>accounting@g-g-d.com</Email>
+                </DistributionMethod>
+                <DistributionCompletionDate>2023-11-15 08:18:13.059</DistributionCompletionDate>
+                <OrderAcceptanceInstructions>***Signatures are not required on this purchase order. It has been
+                    electronically approved.***&#xD;&#xD;Delivery of products and or services, described herein,
+                    constitute acceptance of the terms and conditions of the University of Massachusetts which can be
+                    viewed at the following URL:
+                    https://www.dropbox.com/s/zamt29xzxq8g7m5/University%20PurchaseOrderTerms%20OGC012721.pdf?dl=0
+                </OrderAcceptanceInstructions>
+            </OrderDistribution>
+            <BillTo>
+                <Address>
+                    <TemplateName>UMLOW AP</TemplateName>
+                    <AddressCode>UMLOW-AP</AddressCode>
+                    <Contact label="ALL INVOICES MUST BE EMAILED TO:" linenumber="1"/>
+                    <Contact label="INVOICES@UMASSP.EDU" linenumber="2"/>
+                    <Contact label="PHYSICAL MAIL WILL NOT BE ACCEPTED" linenumber="3"/>
+                    <AddressLine label="Address Line 1" linenumber="1">University of Massachusetts</AddressLine>
+                    <AddressLine label="Address Line 2" linenumber="2">50 Washington St, Suite 3000</AddressLine>
+                    <City>Westborough</City>
+                    <State>MA</State>
+                    <PostalCode>01581</PostalCode>
+                    <Country isocountrycode="US">United States</Country>
+                </Address>
+            </BillTo>
+            <ShipTo>
+                <Address>
+                    <TemplateName>OTHER-UMLOW</TemplateName>
+                    <AddressCode>OTHER-UMLOW</AddressCode>
+                    <Contact label="Attn:" linenumber="1">Hector Valdes</Contact>
+                    <Contact label="Rm/Fl/Ste:" linenumber="2">105A</Contact>
+                    <AddressLine label="Address Line 1" linenumber="1">40 University Ave</AddressLine>
+                    <AddressLine label="Address Line 2" linenumber="2"/>
+                    <AddressLine label="Address Line 3" linenumber="3">storage closet</AddressLine>
+                    <City>Lowell</City>
+                    <State>MA</State>
+                    <PostalCode>01854</PostalCode>
+                    <Country isocountrycode="US">United States</Country>
+                </Address>
+            </ShipTo>
+            <PaymentInfo>
+                <Terms>
+                    <Discount unit="percent"/>
+                    <Days>0</Days>
+                    <Net>30</Net>
+                </Terms>
+            </PaymentInfo>
+            <InternalInfo>
+                <Attachments xmlns:xop="http://www.w3.org/2004/08/xop/include/">
+                    <Attachment id="501339769" type="file">
+                        <AttachmentName>L78395r1_UMass_Lowell_Durgin_Hall_AC-1__2-Study_FEE_Proposal.pdf
+                        </AttachmentName>
+                        <AttachmentURL>
+                            https://solutions.sciquest.com/apps/Router/POAttachmentDownload?AttachmentId=501339769&amp;DocId=149880014&amp;OrgName=UMass
+                        </AttachmentURL>
+                        <AttachmentSize>234</AttachmentSize>
+                        <xop:Include href="cid:1520363868@sciquest.com"/>
+                    </Attachment>
+                </Attachments>
+            </InternalInfo>
+            <ExternalInfo>
+                <Note>FMP0393121</Note>
+            </ExternalInfo>
+            <FreightOnBoard>Destination</FreightOnBoard>
+            <CustomFieldValueSet name="FMP Number" label="FMP Number">
+                <CustomFieldValue>
+                    <Value/>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Campus" label="Business Unit">
+                <CustomFieldValue>
+                    <Value>UMLOW</Value>
+                    <Description>Lowell</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Campus PO Number Prefix" label="Campus PO Number Prefix">
+                <CustomFieldValue>
+                    <Value>L0</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Payment Term" label="Payment Term">
+                <CustomFieldValue>
+                    <Value>Standard</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Fund" label="Fund">
+                <CustomFieldValue>
+                    <Value>57000-L</Value>
+                    <Description>Campus Renovations</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Payment Term Exception" label="Payment Term Exception">
+                <CustomFieldValue>
+                    <Value/>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Department" label="Department">
+                <CustomFieldValue>
+                    <Value>L300600000-L</Value>
+                    <Description>Capital Projects</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Program" label="Program">
+                <CustomFieldValue>
+                    <Value>G00-L</Value>
+                    <Description>Operations &amp; Maintenance</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Requires Receiving" label="Requires Receiving">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Class" label="Class">
+                <CustomFieldValue>
+                    <Value>99991-L</Value>
+                    <Description>Capitalized Expenses</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Hold Invoices" label="Hold Vouchers in BuyWays">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Do not distribute PO" label="Confirming/not sent to vendor">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="PC Business Unit" label="PC Business Unit">
+                <CustomFieldValue>
+                    <Value>UMLOW</Value>
+                    <Description>Lowell</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Project" label="Project">
+                <CustomFieldValue>
+                    <Value>M5024FMP0393121-L</Value>
+                    <Description>DUR HVAC System AHU Replacemen</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Activity Id" label="Activity Id">
+                <CustomFieldValue>
+                    <Value>UM01-L</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Account" label="Account">
+                <CustomFieldValue>
+                    <Value>757120-L</Value>
+                    <Description>Engineers</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Speedtype" label="Speedtype">
+                <CustomFieldValue>
+                    <Value>121155-L</Value>
+                    <Description>DUR HVAC System AHU Replacemen</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Override Request" label="Request Budget Override">
+                <CustomFieldValue>
+                    <Value/>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Amount Only PO" label="Amount Only PO">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="classLink" label="SpeedType Class">
+                <CustomFieldValue>
+                    <Value>99991-L</Value>
+                    <Description>Capitalized Expenses</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Blanket Order" label="Blanket Order (Qty must = 1)">
+                <CustomFieldValue>
+                    <Value>true</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Sole Source" label="No Bid Justification (NBJ)">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="External Req #" label="External Req #">
+                <CustomFieldValue>
+                    <Value/>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Origin Code" label="Origin Code">
+                <CustomFieldValue>
+                    <Value>SCI</Value>
+                    <Description>SciQuest POs/eInv</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Imported PO" label="Imported PO">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <RequisitionRef id="179229441"/>
+            <ShippingCharges>
+                <TaxShippingHandling>
+                    <TSHConfig override="false">
+                        <PercentageRate>0</PercentageRate>
+                    </TSHConfig>
+                    <TSHActualCharge>
+                        <Money currency="USD">0.00</Money>
+                    </TSHActualCharge>
+                </TaxShippingHandling>
+            </ShippingCharges>
+            <HandlingCharges>
+                <TaxShippingHandling>
+                    <TSHConfig override="false">
+                        <PercentageRate>0</PercentageRate>
+                    </TSHConfig>
+                    <TSHActualCharge>
+                        <Money currency="USD">0.00</Money>
+                    </TSHActualCharge>
+                </TaxShippingHandling>
+            </HandlingCharges>
+            <Tax1>
+                <TaxShippingHandling>
+                    <TSHConfig override="false">
+                        <PercentageRate>0</PercentageRate>
+                    </TSHConfig>
+                    <TSHActualCharge>
+                        <Money currency="USD">0.00</Money>
+                    </TSHActualCharge>
+                </TaxShippingHandling>
+            </Tax1>
+            <Tax2>
+                <TaxShippingHandling>
+                    <TSHConfig override="false">
+                        <PercentageRate>0</PercentageRate>
+                    </TSHConfig>
+                    <TSHActualCharge>
+                        <Money currency="USD">0.00</Money>
+                    </TSHActualCharge>
+                </TaxShippingHandling>
+            </Tax2>
+            <POClauses>
+                <POClause>
+                    <ClauseNumber>0002</ClauseNumber>
+                    <ClauseName>PO Number Required</ClauseName>
+                    <ClauseText>All invoices should be emailed to: invoices@umassp.edu. Please ensure that a current,
+                        valid PO number appears on all invoices. Invoices without a valid PO will be returned
+                        unprocessed
+                    </ClauseText>
+                </POClause>
+            </POClauses>
+        </POHeader>
+        <POLine linenumber="1" id="494457080">
+            <WorkflowStatus status="Approved"/>
+            <SupplierStatus status="SentToSupplier">
+                <HasBackorderedItems>false</HasBackorderedItems>
+                <HasCancelledItems>false</HasCancelledItems>
+                <HasSupplierEdits>false</HasSupplierEdits>
+                <HasShippedItems>false</HasShippedItems>
+            </SupplierStatus>
+            <Item>
+                <Description>Durgin HVAC AC 1&amp;2 Refurbishment DCAMM Cerftied Study, Campus Funds</Description>
+                <ProductUnitOfMeasure type="system">
+                    <Measurement>
+                        <MeasurementAmount>0.00</MeasurementAmount>
+                        <MeasurementUnit>EA</MeasurementUnit>
+                        <MeasurementValue>0.00 EA</MeasurementValue>
+                    </Measurement>
+                </ProductUnitOfMeasure>
+                <ProductUnitOfMeasure type="buyer">
+                    <Measurement>
+                        <MeasurementAmount>0.00</MeasurementAmount>
+                        <MeasurementUnit>EA</MeasurementUnit>
+                        <MeasurementValue>0.00 EA</MeasurementValue>
+                    </Measurement>
+                </ProductUnitOfMeasure>
+                <ProductUnitOfMeasure type="supplier">
+                    <Measurement>
+                        <MeasurementAmount>0.00</MeasurementAmount>
+                        <MeasurementUnit>EA</MeasurementUnit>
+                        <MeasurementValue>0.00 EA</MeasurementValue>
+                    </Measurement>
+                </ProductUnitOfMeasure>
+                <ProductSize type="supplier">
+                    <Measurement>
+                        <MeasurementUnit>EA</MeasurementUnit>
+                        <MeasurementValue>EA</MeasurementValue>
+                    </Measurement>
+                </ProductSize>
+                <CommodityCode>Const/Reno/Prev Wage Work, includes CFS</CommodityCode>
+                <ProductType>FormRequest</ProductType>
+                <ProductClassification type="Controlled">false</ProductClassification>
+                <ProductClassification type="Green">false</ProductClassification>
+                <ProductClassification type="Hazardous">false</ProductClassification>
+                <ProductClassification type="Radioactive">false</ProductClassification>
+                <ProductClassification type="RadioactiveMinor">false</ProductClassification>
+                <ProductClassification type="SelectAgent">false</ProductClassification>
+                <ProductClassification type="Toxin">false</ProductClassification>
+                <ProductClassification type="EnergyStar">false</ProductClassification>
+                <ProductClassification type="GreenProduct">false</ProductClassification>
+                <ExtendedItemInfo>
+                    <GeneralItemInfo>
+                        <ProductFormName>Purchase Request</ProductFormName>
+                    </GeneralItemInfo>
+                </ExtendedItemInfo>
+            </Item>
+            <Quantity>1</Quantity>
+            <CapitalExpense>false</CapitalExpense>
+            <FixedAsset>false</FixedAsset>
+            <Taxable>false</Taxable>
+            <LineCharges>
+                <UnitPrice>
+                    <Money currency="USD">3497.33</Money>
+                </UnitPrice>
+                <ExtendedPrice>
+                    <Money currency="USD">3497.33</Money>
+                </ExtendedPrice>
+                <ShippingCharges>
+                    <TaxShippingHandling>
+                        <TSHConfig override="false">
+                            <PercentageRate>0</PercentageRate>
+                        </TSHConfig>
+                        <TSHActualCharge>
+                            <Money currency="USD">0.00</Money>
+                        </TSHActualCharge>
+                    </TaxShippingHandling>
+                </ShippingCharges>
+                <HandlingCharges>
+                    <TaxShippingHandling>
+                        <TSHConfig override="false">
+                            <PercentageRate>0</PercentageRate>
+                        </TSHConfig>
+                        <TSHActualCharge>
+                            <Money currency="USD">0.00</Money>
+                        </TSHActualCharge>
+                    </TaxShippingHandling>
+                </HandlingCharges>
+                <Tax1>
+                    <TaxShippingHandling>
+                        <TSHConfig override="false">
+                            <PercentageRate>0</PercentageRate>
+                        </TSHConfig>
+                        <TSHActualCharge>
+                            <Money currency="USD">0.00</Money>
+                        </TSHActualCharge>
+                    </TaxShippingHandling>
+                </Tax1>
+                <Tax2>
+                    <TaxShippingHandling>
+                        <TSHConfig override="false">
+                            <PercentageRate>0</PercentageRate>
+                        </TSHConfig>
+                        <TSHActualCharge>
+                            <Money currency="USD">0.00</Money>
+                        </TSHActualCharge>
+                    </TaxShippingHandling>
+                </Tax2>
+            </LineCharges>
+            <DeliveryInfo>
+                <ShippingMethod id="0">
+                    <Carrier id="0">Best Carrier</Carrier>
+                    <MethodName>Best Way</MethodName>
+                    <MethodDisplayText>Best Carrier-Best Way</MethodDisplayText>
+                </ShippingMethod>
+            </DeliveryInfo>
+            <SupplierInfo>
+                <ContractNumber>CL14-MD-0015-Garcia Galuska &amp; DeSousa Inc</ContractNumber>
+            </SupplierInfo>
+            <CustomFieldValueSet name="FMP Number" label="FMP Number">
+                <CustomFieldValue>
+                    <Value/>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Campus" label="Business Unit">
+                <CustomFieldValue>
+                    <Value>UMLOW</Value>
+                    <Description>Lowell</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Campus PO Number Prefix" label="Campus PO Number Prefix">
+                <CustomFieldValue>
+                    <Value>L0</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Payment Term" label="Payment Term">
+                <CustomFieldValue>
+                    <Value>Standard</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Fund" label="Fund">
+                <CustomFieldValue>
+                    <Value>57000-L</Value>
+                    <Description>Campus Renovations</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Payment Term Exception" label="Payment Term Exception">
+                <CustomFieldValue>
+                    <Value/>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Department" label="Department">
+                <CustomFieldValue>
+                    <Value>L300600000-L</Value>
+                    <Description>Capital Projects</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Program" label="Program">
+                <CustomFieldValue>
+                    <Value>G00-L</Value>
+                    <Description>Operations &amp; Maintenance</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Requires Receiving" label="Requires Receiving">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Class" label="Class">
+                <CustomFieldValue>
+                    <Value>99991-L</Value>
+                    <Description>Capitalized Expenses</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Hold Invoices" label="Hold Vouchers in BuyWays">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Do not distribute PO" label="Confirming/not sent to vendor">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="PC Business Unit" label="PC Business Unit">
+                <CustomFieldValue>
+                    <Value>UMLOW</Value>
+                    <Description>Lowell</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Project" label="Project">
+                <CustomFieldValue>
+                    <Value>M5024FMP0393121-L</Value>
+                    <Description>DUR HVAC System AHU Replacemen</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Activity Id" label="Activity Id">
+                <CustomFieldValue>
+                    <Value>UM01-L</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Account" label="Account">
+                <CustomFieldValue>
+                    <Value>757120-L</Value>
+                    <Description>Engineers</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Speedtype" label="Speedtype">
+                <CustomFieldValue>
+                    <Value>121155-L</Value>
+                    <Description>DUR HVAC System AHU Replacemen</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Override Request" label="Request Budget Override">
+                <CustomFieldValue>
+                    <Value/>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Amount Only PO" label="Amount Only PO">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="classLink" label="SpeedType Class">
+                <CustomFieldValue>
+                    <Value>99991-L</Value>
+                    <Description>Capitalized Expenses</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Blanket Order" label="Blanket Order (Qty must = 1)">
+                <CustomFieldValue>
+                    <Value>true</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Sole Source" label="No Bid Justification (NBJ)">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="External Req #" label="External Req #">
+                <CustomFieldValue>
+                    <Value/>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Origin Code" label="Origin Code">
+                <CustomFieldValue>
+                    <Value>SCI</Value>
+                    <Description>SciQuest POs/eInv</Description>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <CustomFieldValueSet name="Imported PO" label="Imported PO">
+                <CustomFieldValue>
+                    <Value>false</Value>
+                    <Description/>
+                </CustomFieldValue>
+            </CustomFieldValueSet>
+            <RequisitionLineRef id="660019509"/>
+        </POLine>
+    </PurchaseOrder>
+</PurchaseOrderMessage>

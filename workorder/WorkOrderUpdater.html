@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>University of Massachusetts Lowell Work Order Updater</title>
+<!--	<script src="https://cdn.jsdelivr.net/npm/nodemailer@6.6.3/dist/nodemailer.min.js"></script>-->
+
+<!--	<script src="WorkOrderUpdater.js" type="module"></script>-->
+	<script>
+function showResponse() {
+    // Code to create new HTML page and show form responses as a single sentence
+    var building = document.getElementById("building").value;
+    var serviceRequested = document.getElementById("service-requested").value;
+    var description = document.getElementById("description").value;
+    var requestedFor = document.getElementById("requested-for").value;
+    var assignmentStatus = document.getElementById("assignment-status").value;
+    var resourceName = document.getElementById("resource-name").value;
+    var updateNotes = document.getElementById("update-notes").value;
+    var emailAddress = document.getElementById("email-address").value;
+
+	var startResponse = `
+			<html>
+			<head>
+			  <style>
+			  body {
+				background-color: #f2f2f2;
+				font-family: Arial, sans-serif;
+				font-size: 16px;
+				line-height: 1.5;
+				margin: 0;
+				padding: 0;
+				text-align: center;
+			  }
+			  h2 {
+				/*background-color: #1c4587;*/
+				/*color: #fff;*/
+				font-size: 24px;
+				font-weight: normal;
+				margin: 0 auto;
+				max-width: 600px;
+				padding: 20px;
+				text-align: center;
+			  }
+
+			  .box {
+				background-color: #fff;
+				border: 1px solid #1c4587;
+				margin: 20px auto;
+				max-width: 600px;
+				padding: 20px;
+				text-align: justify;
+			  }
+			  table {
+				background-color: #fff;
+				border-collapse: collapse;
+				border: 1px solid #1c4587;
+				margin: 0 auto;
+				max-width: 700px;
+				width: 100%;
+			  }
+			  th, td {
+				border: 1px solid #1c4587;
+				padding: 8px;
+				text-align: left;
+			  }
+			  th {
+				background-color: #fff;
+				font-weight: bold;
+			  }
+			  </style>
+			</head>
+			<body>
+	`
+
+	var formResponse =
+	"<table>" +
+    "<tr><td><b>Building:</b></td><td>" + building + "</td></tr>" +
+    "<tr><td><b>Service Requested:</b></td><td>" + serviceRequested + "</td></tr>" +
+    "<tr><td><b>Description:</b></td><td>" + description + "</td></tr>" +
+    "<tr><td><b>Requested For:</b></td><td>" + requestedFor + "</td></tr>" +
+    "<tr><td><b>Assignment Status:</b></td><td>" + assignmentStatus + "</td></tr>" +
+    "<tr><td><b>Resource Name:</b></td><td>" + resourceName + "</td></tr>" +
+    "<tr><td><b>Update Notes:</b></td><td>" + updateNotes + "</td></tr>" +
+    "<tr><td><b>Email Address:</b></td><td>" + emailAddress + "</td></tr>" +
+    "</table>";
+
+
+    var receivedResponse = `
+          <div class="box">
+          	<h2>Your Work Order Request Status</h2>
+        	<p>Thanks for using UMass Lowell Facilities Management's Workorder Request system. Your workorder request, summarized below, has been <b>received</b>. We will email again when it has been assigned and/or completed. If you have questions or comments, please email <a href="mailto:facilities@uml.edu">facilities@uml.edu</a>.</p>
+            <p><b>Request Description:</b>`+ description+`</p>
+          </div>
+
+    `
+
+    var completedResponse = `
+          <div class="box">
+          	<h2>Your Work Order Request Status</h2>
+            <p>Thanks for using UMass Lowell Facilities Management's Workorder Request system. Your workorder request, summarized below, has been <b>completed</b>.If you have questions or comments, please email <a href="mailto:facilities@uml.edu">facilities@uml.edu</a>.</p>
+            <p><b>Request Description:</b>`+ description+`</p>
+
+            <p>Also, please complete this 1 question survey:</p>
+            <p>How satisfied were you with this workorder experience?</p>
+            <form action="">
+              <input type="radio" id="very-satisfied" name="satisfaction" value="very-satisfied">
+              <label for="very-satisfied">Very Satisfied</label><br>
+              <input type="radio" id="satisfied" name="satisfaction" value="satisfied">
+              <label for="satisfied">Satisfied</label><br>
+              <input type="radio" id="not-satisfied" name="satisfaction" value="not-satisfied">
+              <label for="not-satisfied">Not Satisfied</label><br>
+              <p>Comments:</p>
+              <textarea name="comments" rows="4" cols="50"></textarea>
+              <br>
+              <input type="submit" value="Submit">
+            </form>
+          </div>
+        </body>
+    `
+
+    var assignedNoUpdateResponse = `
+          <div class="box">
+            <h2>Your Work Order Request Status</h2>
+            <p>Thanks for using UMass Lowell Facilities Management's Workorder Request system. Your workorder request, summarized below, has been <b>assigned</b>. We will email again when it has been completed or any update in status. If you have questions or comments, please email <a href="mailto:facilities@uml.edu">facilities@uml.edu</a>.</p>
+            <p><b>Request Description:</b>`+ description+`</p>
+          </div>
+        </body>
+    `
+
+    var assignedUpdateResponse = `
+          <div class="box">
+            <h2>Your Work Order Request Status</h2>
+            <p>Thanks for using UMass Lowell Facilities Management's Workorder Request system. Your workorder request, summarized below, has been <b>assigned</b>. We will email again when it has been completed or any update in status. If you have questions or comments, please email <a href="mailto:facilities@uml.edu">facilities@uml.edu</a>.</p>
+            <p><b>Request Description:</b>`+ description+`</p>
+            <p><b>Update Notes:</b>`+updateNotes+`</p>
+          </div>
+        </body>
+    `
+
+    if (assignmentStatus == "Received"){
+        var response = receivedResponse
+    }
+
+    else if (assignmentStatus == "Completed"){
+        var response = completedResponse
+    }
+    else if(assignmentStatus == "Assigned"){
+        if (updateNotes == "New" || updateNotes == "Blank/Same as Previous")
+        {
+            var response = assignedNoUpdateResponse
+        }
+        else if (updateNotes == "Complete")
+        {
+            var response = completedResponse
+        }
+        else if (updateNotes == "Different(Not Empty)")
+        {
+            var response = assignedUpdateResponse
+        }
+        else
+        {
+            var response = "Invalid Input"
+        }
+    }
+
+	var workOrderResponse = startResponse + "<h2>Work Order Update</h2>" + formResponse + "<h2>Work Order Update Email Format</h2>" + response + "</body></html>"
+    var newPage = window.open();
+	newPage.document.write(workOrderResponse)
+    // newPage.document.write(startResponse + "<p><h2>Work Order Update</h2>" + formResponse + "</p><p><h2>Work Order Update Email Format</h2>" + response + "</p></body></html>");
+    }
+
+	</script>
+	<style>
+		body {
+			font-family: Arial, sans-serif;
+			background-color: #f7f7f7;
+		}
+		h1 {
+			background-color: #1c4587;
+            margin: 0px auto;
+            max-width: 600px;
+			color: #fff;
+			padding: 20px;
+			text-align: center;
+		}
+		form {
+			padding: 20px;
+            max-width: 600px;
+			margin: 0 auto;
+			background-color: #fff;
+			box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+			border-radius: 5px;
+		}
+		label {
+			display: block;
+			font-weight: bold;
+			margin-bottom: 5px;
+		}
+		select, input[type="text"] {
+			display: block;
+			padding: 5px;
+			margin-bottom: 20px;
+			width: 100%;
+			box-sizing: border-box;
+			border: 1px solid #ccc;
+			border-radius: 3px;
+			font-size: 16px;
+		}
+		select, input[type="email"] {
+			display: block;
+			padding: 5px;
+			margin-bottom: 20px;
+			width: 100%;
+			box-sizing: border-box;
+			border: 1px solid #ccc;
+			border-radius: 3px;
+			font-size: 16px;
+		}
+
+		select option:first-child {
+			display: none;
+		}
+		textarea {
+			display: block;
+			padding: 5px;
+			margin-bottom: 20px;
+			width: 100%;
+			box-sizing: border-box;
+			border: 1px solid #ccc;
+			border-radius: 3px;
+			font-size: 16px;
+			resize: vertical;
+			min-height: 100px;
+		}
+		button {
+			display: block;
+			padding: 10px;
+			margin: 20px auto 0;
+			background-color: #1c4587;
+			color: #fff;
+			border: none;
+			border-radius: 3px;
+			cursor: pointer;
+			font-size: 16px;
+		}
+		button:hover {
+			background-color: #0e2e58;
+		}
+	</style>
+</head>
+<body>
+	<header>
+		<h1>University of Massachusetts Lowell Work Order Updater</h1>
+	</header>
+
+	<form>
+		<label for="building">Building:</label>
+		<select id="building" name="building">
+			<option value="">-- Select Building --</option>
+			<option value="Dandeneau Hall">Dandeneau Hall</option>
+			<option value="Durgin Hall">Durgin Hall</option>
+			<option value="Concordia Hall">Concordia Hall</option>
+			<option value="Donahue Hall">Donahue Hall</option>
+			<option value="University Crossing">University Crossing</option>
+			<option value="Cumnock Hall">Cumnock Hall</option>
+		</select>
+
+		<label for="service-requested">Service Requested:</label>
+		<select id="service-requested" name="service-requested">
+			<option value="">-- Select Service Requested --</option>
+			<option value="Projects Other">Projects Other</option>
+			<option value="General Repairs Other">General Repairs Other</option>
+			<option value="Interior directional signs">Interior directional signs</option>
+			<option value="Signage Other">Signage Other</option>
+		</select>
+
+		<label for="description">Description:</label>
+		<select id="description" name="description">
+			<option value="">-- Select Description --</option>
+			<option value="[SC] There are cross talk issues  that are coming from the office below Prof. Rykalova's office DAN 332 that need to be addressed.">[SC] There are cross talk issues  that are coming from the office below Prof. Rykalova's office DAN 332 that need to be addressed.
+			</option>
+			<option value="[WEB] Durgin 313A - Existing sign is on wrong door and should be removed. The actual 313A should have a sign installed identifying it as an electrical closet, not a janitor's closet. Please assign this work order to Tori Brunelle. Thanks.
+2/9/23- Assign to Hector Valdes ">[WEB] Durgin 313A - Existing sign is on wrong door and should be removed. The actual 313A should have a sign installed identifying it as an electrical closet, not a janitor's closet. Please assign this work order to Tori Brunelle. Thanks.
+2/9/23- Assign to Hector Valdes
+			</option>
+			<option value="[WEB] Repair walls on first floor past the ladies rest room and past the stair case, leading to back bedrooms as paint is chipping. Not sure if it's a paint issue or wall repair issue. Can someone look at this please?
+12/1/21 - Per Jeff, transfer to Chris
+12/1/21- Per Chris, needs to go to PM">[WEB] Repair walls on first floor past the ladies rest room and past the stair case, leading to back bedrooms as paint is chipping. Not sure if it's a paint issue or wall repair issue. Can someone look at this please?
+12/1/21 - Per Jeff, transfer to Chris
+12/1/21- Per Chris, needs to go to PM
+			</option>
+			<option value="[SC] UMass EMS office would like a few new chairs">[SC] UMass EMS office would like a few new chairs
+			</option>
+			<option value="[WEB] Non-urgent request. Please remove or update the sign to UCC 141A within UCC 141. Current sign to 141A reads M68.  Unsure if this is the correct pathway for this request, please reallocate as needed. Thank you!
+Emailed Leanne Peters 2/9 - RO">[WEB] Non-urgent request. Please remove or update the sign to UCC 141A within UCC 141. Current sign to 141A reads M68.  Unsure if this is the correct pathway for this request, please reallocate as needed. Thank you!
+Emailed Leanne Peters 2/9 - RO
+			</option>
+			<option value="[WEB] Hello - The university has put together a family-friendly task force. Here's a staged website that can give you an idea what we are working on:  https://stage.uml.edu/Academics/Provost-office/Student-Success/Pregnant-Parenting-Students. We are linking to the campus maps where  'nursing mothers rooms' are noted. We would like to request some some signs in the buildings noting where to find these rooms as they are a bit out of the way. Can you help with that? Maybe something like this?  https://www.adasigndepot.com/products/ada-signs-lactation-room-sign?
+Also, would it be possible to change the wording 'nursing mothers rooms' to 'Lactation Rooms' to be more inclusive?
+Thank you! ">[WEB] Hello - The university has put together a family-friendly task force. Here's a staged website that can give you an idea what we are working on:  https://stage.uml.edu/Academics/Provost-office/Student-Success/Pregnant-Parenting-Students. We are linking to the campus maps where  'nursing mothers rooms' are noted. We would like to request some some signs in the buildings noting where to find these rooms as they are a bit out of the way. Can you help with that? Maybe something like this?  https://www.adasigndepot.com/products/ada-signs-lactation-room-sign?
+Also, would it be possible to change the wording 'nursing mothers rooms' to 'Lactation Rooms' to be more inclusive?
+Thank you!
+			</option>
+			<option value="[WEB] Cumnock Hall does not have, but needs Building Directories installed. One is needed at the first floor entrance facing University Avenue, as well as another at the rear ground floor entrance facing Perry Hall.  Per Peter Brigham, please assign to Kartik Shah. Thank you.
+2/17/2023- Per Leanne assign to Swapna">[WEB] Cumnock Hall does not have, but needs Building Directories installed. One is needed at the first floor entrance facing University Avenue, as well as another at the rear ground floor entrance facing Perry Hall.  Per Peter Brigham, please assign to Kartik Shah. Thank you.
+2/17/2023- Per Leanne assign to Swapna
+			</option>
+		</select>
+
+		<label for="requested-for">Requested For:</label>
+		<select id="requested-for" name="requested-for">
+			<option value="">-- Select Requested For --</option>
+			<option value="Karen Volis">Karen Volis</option>
+			<option value="Leanne Peters">Leanne Peters</option>
+			<option value="Marta Moran">Marta Moran</option>
+			<option value="Nicole Kelly">Nicole Kelly</option>
+        </select>
+
+        <label for="assignment-status">Assignment Status:</label>
+        <select id="assignment-status" name="assignment-status">
+            <option value="">-- Select Assignment Status --</option>
+            <option value="Received">Received</option>
+            <option value="Assigned">Assigned</option>
+            <option value="Completed">Completed</option>
+        </select>
+
+        <label for="resource-name">Resource Name:</label>
+        <select id="resource-name" name="resource-name">
+            <option value="">-- Select Resource Name --</option>
+            <option value="Rupinder Sembhi">Rupinder Sembhi</option>
+            <option value="Hector Valdes">Hector Valdes</option>
+			<option value="Stacy Sawyer">Stacy Sawyer</option>
+			<option value="Victoria Brunelle">Victoria Brunelle</option>
+			<option value="Kartik Shah">Kartik Shah</option>
+			<option value="Swapna Natesh Babu">Swapna Natesh Babu</option>
+        </select>
+
+        <label for="update-notes">Update Notes:</label>
+        <select id="update-notes" name="update-notes">
+            <option value="">-- Select Update Notes --</option>
+            <option value="New">New</option>
+            <option value="Blank/Same as Previous">Blank/Same as Previous</option>
+            <option value="Different(Not Empty)">Different(Not Empty)</option>
+            <option value="Complete">Complete</option>
+        </select>
+
+        <label for="email-address">Email Address:</label>
+        <input type="email" id="email-address" name="email-address" placeholder="example@domain.com">
+
+<!--        <button type="button" onclick="sendEmail()">Send Email</button>-->
+        <button type="button" onclick="showResponse()">Show Response</button>
+    </form>
+
+</body>
+</html>

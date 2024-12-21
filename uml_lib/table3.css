@@ -1,0 +1,15 @@
+body{
+  font-family: 'Open Sans',sans-serif;
+}
+
+th {
+ font-weight: normal;
+}
+.table tbody tr:nth-of-type(even) {
+  background-color: #f9f9f9;
+}
+
+.table thead .header-row {
+  background-color: #0463a7;
+  color: white;
+}
