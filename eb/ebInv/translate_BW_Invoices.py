@@ -1,6 +1,6 @@
 import csv
 import chardet
-import uml_V2.uml_lib.ebHTML as ebHTML
+import uml_python.uml_lib.ebHTML as ebHTML
 
 """
 import ebCOST_newAPI.eb.ebCostLib as ebCost
@@ -9,10 +9,10 @@ import uml_new.eb.ebInv.write_Invoice_Process_line as wINP
 import ebCOST_newAPI.eb.ebAPI_lib as ebAPI
 """
 
-import uml_V2.uml_lib.ebCostLib as ebCost
-import uml_V2.eb.ebInv.write_Invoice_Cost_line as wINC
-#import uml_V2.ebInv.write_Invoice_Process_line as wINP
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.uml_lib.ebCostLib as ebCost
+import uml_python.eb.ebInv.write_Invoice_Cost_line as wINC
+#import uml_python.ebInv.write_Invoice_Process_line as wINP
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 
 def debugPrint(theStr):

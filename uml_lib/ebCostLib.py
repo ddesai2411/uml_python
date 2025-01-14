@@ -93,7 +93,7 @@ def parse_Buyways_Project(proj):
         #print "****", FMP
     else:
         FMP = "NON FMP"
-
+        #if FMP == "NON FMP" then parse HeaderNotes to look for FMP
     return FMP
 
 def parseHeaderNotes(headerNotes):
@@ -181,6 +181,7 @@ def getBudgetTasks():
 POprocessHeaders = {1:"FMP Number",2:"Process Counter",3:"Commitment Number",4:"PeopleSoft PO#",5:"PeopleSoft PO Amount",\
                         6:"Step",7:"Speedtype",8:"Origin Code",9:"Notes"}
 
+# These are the headers for the excel POCostImportJoinedData
 POcostHeaders = {1:"Commitment Number",2:"FMP Number",3:"Commitment Type",4:"Company Name",5:"Budget Line Item",6:"Status",7:"Item Number",\
                      8:"Description",9:"Item Quantity",10:"Item Unit Cost",11:"Commitment Date",12:"Company Number",13:"Commitment Item Amount",\
                      14:"Item Unit of Measure",15:"Funding Rule",16:"Speedtype",17:"PeopleSoft PO#",18:"Origin Code",19:"Commodity Code",20:"Retainage",21:"Notes"}

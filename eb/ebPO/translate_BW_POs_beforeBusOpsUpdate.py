@@ -7,10 +7,10 @@ import ebCOST_newAPI.eb.ebPO.write_PO_Process_line as wPOP
 import ebCOST_newAPI.eb.ebAPI_lib as ebAPI
 """
 
-import uml_V2.uml_lib.ebCostLib as ebCost
-import uml_V2.eb.ebPO.write_PO_Cost_line as wPOC
-import uml_V2.eb.ebPO.write_PO_Process_line as wPOP
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.uml_lib.ebCostLib as ebCost
+import uml_python.eb.ebPO.write_PO_Cost_line as wPOC
+import uml_python.eb.ebPO.write_PO_Process_line as wPOP
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 
 # basic_Buyways_POs
@@ -499,7 +499,7 @@ def translate_Buyways_POs(theCSV, currStamp):
     # Check if we creeated any Excels, if so, close 'em
     #uname = getpass.getuser()
     # ofilebase = "DataFiles/" + currStamp + "_"
-    # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_V2\\uml\\DataFiles\\" + currStamp + "_"
+    # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\DataFiles\\" + currStamp + "_"
     # ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
     ofilebase = "/Users/kysgattu/FIS/BDrive/dailyImports/_kysTestCSV_" + currStamp + "_"
     print("First cost", firstCost)
@@ -529,8 +529,8 @@ def translate_Buyways_POs(theCSV, currStamp):
     # return retVal
 
 
-# translate_Buyways_POs("/Users/kysgattu/FIS/uml_v2_dev/uml_V2/sampleData/transaction_export_po_search_POData-1958733281.csv",
+# translate_Buyways_POs("/Users/kysgattu/FIS/uml_python_dev/uml_python/sampleData/transaction_export_po_search_POData-1958733281.csv",
 #                       tstamper2())
 
-# translate_Buyways_POs("/Users/kysgattu/FIS/uml_v2_dev/uml_V2/sampleData/sampledata.csv",
+# translate_Buyways_POs("/Users/kysgattu/FIS/uml_python_dev/uml_python/sampleData/sampledata.csv",
 #                       tstamper2())

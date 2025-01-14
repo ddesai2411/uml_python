@@ -7,10 +7,10 @@ import ebCOST_newAPI.eb.ebPO.write_PO_Process_line as wPOP
 import ebCOST_newAPI.eb.ebAPI_lib as ebAPI
 """
 
-import uml_V2.uml_lib.ebCostLib as ebCost
-import uml_V2.eb.ebPO.write_PO_Cost_line as wPOC
-import uml_V2.eb.ebPO.write_PO_Process_line as wPOP
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.uml_lib.ebCostLib as ebCost
+import uml_python.eb.ebPO.write_PO_Cost_line as wPOC
+import uml_python.eb.ebPO.write_PO_Process_line as wPOP
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 
 # basic_Buyways_POs
@@ -147,6 +147,7 @@ def translate_Buyways_POs(theCSV, currStamp):
     counts = {"EBprocess": 0, "EBcostST": 0, "EBcostFMP": 0, "EBexists": 0, "EBexistsCO?": 0, "nonEB": 0}
     COcount = 0
 
+    # The big excel file.
     #theCSV = "DataFiles\\transaction_export_po_search_POData884686266.csv"
 
     # NOTE: Noticed the encoding type of csv file is not same always,
@@ -166,6 +167,7 @@ def translate_Buyways_POs(theCSV, currStamp):
         errorST = []
         EBvalue = 0.0
         currPOvalue = 0.0
+        # For this row in POData .......
         for r in POdata:
             #print "At line", myCount
             #print r
@@ -174,6 +176,7 @@ def translate_Buyways_POs(theCSV, currStamp):
             #print "New line of data\nCurrPO:", currPO, " and BW PO:",r['PO #'], " and PO Line #", r['PO Line #']
             originalST = r["Speedtype"] # we want to preserve to see multiple speedtypes
             originalProject = r["Project"]
+            possibleFMP = r["Header Notes"]
             if currPO != r['PO #']:
                 # It's a new PO
                 #print ("!!!<<<", currPO)
@@ -242,6 +245,7 @@ def translate_Buyways_POs(theCSV, currStamp):
                     currFund= currFund.lstrip()
                     currFundRule = ebCost.buildFundingRule(currST,currFund)
                     currFundRule = currFundRule.lstrip()
+                    currFMP = possibleFMP[3:]
                 # lineType = "EBcost" # will change to non EB if we don't find speedtype
                 #print "!!!<<< EBcost linetype"
 
@@ -333,6 +337,7 @@ def translate_Buyways_POs(theCSV, currStamp):
                         except:
                             currFundRule = "CHECK FUNDING RULE"
                         #print ">>>>>>", currFMP, currST
+                        # For this row in the big excel file this logic is storing current FMP number.
                         r['Project'] = currFMP
                         r['Speedtype'] = currST
                         foundST = True
@@ -470,7 +475,7 @@ def translate_Buyways_POs(theCSV, currStamp):
     # Check if we creeated any Excels, if so, close 'em
     #uname = getpass.getuser()
     # ofilebase = "DataFiles/" + currStamp + "_"
-    # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_V2\\uml\\DataFiles\\" + currStamp + "_"
+    # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\DataFiles\\" + currStamp + "_"
     ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
     print("First cost", firstCost)
 

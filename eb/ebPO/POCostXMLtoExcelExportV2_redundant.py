@@ -2,9 +2,9 @@
 # coding: utf-8
 
 import xmltodict, glob
-from uml_V2.uml_lib import ebAPI_lib as eb
-from uml_V2.uml_lib import ebCostLib as ebCost
-from uml_V2.uml_lib import web_lib as UMLweb
+from uml_python.uml_lib import ebAPI_lib as eb
+from uml_python.uml_lib import ebCostLib as ebCost
+from uml_python.uml_lib import web_lib as UMLweb
 # import ebAPI_lib_v2 as eb
 from datetime import datetime
 from openpyxl import Workbook
@@ -905,7 +905,7 @@ def POXMLtoExcel(PO_dict):
 
     # oDir = "B:\\dailyImports\\_XML_"
     oDir = "/Users/kysgattu/FIS/BDrive/dailyImports/_XML_/"
-    # oDir = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_V2\\umlV2\\outputfiles\\"
+    # oDir = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\umlV2\\outputfiles\\"
     opFile = oDir + currTime + '_POcostImport.xlsx'
     currWB.save(opFile)
     print('Report Saved At: ', oDir + currTime + '_POcostImport.xlsx')

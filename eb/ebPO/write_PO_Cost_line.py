@@ -2,7 +2,7 @@
 9/3/2021: added FMlead for filtering POs (not importing O&S)
 """
 #import uml_new.eb.ebAPI_lib as ebAPI
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 #import ebCOST_newAPI.eb.ebAPI_lib as ebAPI
 
 def debugPrint(theStr):
@@ -61,6 +61,7 @@ def write_PO_Cost_line(POrow,ebCompanies,fundRule, multST, budgTasks, ws, samePO
     outCell = ws.cell(row=write_PO_Cost_line.counter, column=2)
     outCell.value = POrow["Project"] # We looked this up from the EB report (ebPOs) and changed the PS Project ID that BW had
     # debugPrint(POrow["Project"])
+    # if FMP number does not exist in POrow["Project"] look for it in "Header Notes" add it here and continue adding other fields too??
 
     # 3: Commitment type: we won't know, Buyways doesn't know. Wrong type will cause problems. Is it required?
     outCell = ws.cell(row=write_PO_Cost_line.counter, column=3)

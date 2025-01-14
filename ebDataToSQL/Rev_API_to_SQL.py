@@ -1,7 +1,7 @@
 import json
 import re
 import pyodbc
-import uml_V2.uml_lib.ebAPI_lib as eb
+import uml_python.uml_lib.ebAPI_lib as eb
 
 
 def flatten_json(json_data, parent_key='', sep='_'):

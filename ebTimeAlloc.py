@@ -5,7 +5,7 @@ from datetime import datetime
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 #import newebapi_proj as project_data
 #import newebapi_budg as budget_data

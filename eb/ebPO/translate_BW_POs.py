@@ -1,9 +1,9 @@
 import csv, datetime, getpass, chardet
-import uml_V2.uml_lib.ebCostLib as ebCost
+import uml_python.uml_lib.ebCostLib as ebCost
 # Cost line - 230731 - working on FMP in description/simplifying code
-import uml_V2.eb.ebPO.write_PO_Cost_line as wPOC
-import uml_V2.eb.ebPO.write_PO_Process_line as wPOP
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.eb.ebPO.write_PO_Cost_line as wPOC
+import uml_python.eb.ebPO.write_PO_Process_line as wPOP
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 
 # basic_Buyways_POs
@@ -56,6 +56,9 @@ def get_FMP_from_POdata(r):
     if currFMP == "NON EB":
         currFMP = ebCost.parse_Buyways_Description(r["Product Description"])
     #print("240211: FMP", currFMP)
+    #if currFMP == "NON FMP":
+    #    currFMP = r["Header Notes"][3:]
+
     return(currFMP)
                 
 def parse_POcsv(theCSV,currStamp):
@@ -142,7 +145,7 @@ def parse_POcsv(theCSV,currStamp):
                 else:
                     currFMP = get_FMP_from_POdata(r)
                     
-                    
+
                     print("240210 GOT HERE" , currFMP)
                     if currFMP == "NON FMP":
                         lineType = "nonEB"
@@ -199,7 +202,7 @@ def parse_POcsv(theCSV,currStamp):
     # Check if we creeated any Excels, if so, close 'em
     #uname = getpass.getuser()
     # ofilebase = "DataFiles/" + currStamp + "_"
-    # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_V2\\uml\\DataFiles\\" + currStamp + "_"
+    # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\DataFiles\\" + currStamp + "_"
     print("First cost", firstCost)
 
     ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"

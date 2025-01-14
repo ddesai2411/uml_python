@@ -1,9 +1,9 @@
 import glob,os,shutil
 import zipfile
 
-import uml_V2.bw2eb.bw2eb as bw2eb
-import uml_V2.uml_lib.ebCostLib as ebCost
-import uml_V2.uml_lib.web_lib as UMLweb
+import uml_python.bw2eb.bw2eb as bw2eb
+import uml_python.uml_lib.ebCostLib as ebCost
+import uml_python.uml_lib.web_lib as UMLweb
 
 # Purpose: Get the Buyways Reports in the form of "ZIP" files in the directory.
 # Extract the Zip Files to get the .CSV Reports
@@ -18,9 +18,9 @@ def main():
     currStamp = UMLweb.tstamper2()
 
     # Modify Paths below accordingly
-    # theDir = 'C:\\Users\\K_Gattu\\PycharmProjects\\uml_V2\\uml\\DataFiles\\fromBuyways_reports\\'
+    # theDir = 'C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\DataFiles\\fromBuyways_reports\\'
     # processed_Dir = theDir + 'processed\\'
-    # ofilebase = 'C:\\Users\\K_Gattu\\PycharmProjects\\uml_V2\\uml\\outputfiles\\' + currStamp + "_"
+    # ofilebase = 'C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\outputfiles\\' + currStamp + "_"
 
     
     theDir = "B:\\dailyImports\\fromBuyways_reports\\"

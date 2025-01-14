@@ -1,9 +1,9 @@
 import csv, datetime, getpass, chardet
-import uml_V2.uml_lib.ebCostLib as ebCost
+import uml_python.uml_lib.ebCostLib as ebCost
 # Cost line - 230731 - working on FMP in description/simplifying code
-import uml_V2.eb.ebPO.write_PO_Cost_line as wPOC
-import uml_V2.eb.ebPO.write_PO_Process_line as wPOP
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.eb.ebPO.write_PO_Cost_line as wPOC
+import uml_python.eb.ebPO.write_PO_Process_line as wPOP
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 
 # basic_Buyways_POs
@@ -177,7 +177,7 @@ def parse_POcsv(theCSV,currStamp):
     # Check if we creeated any Excels, if so, close 'em
     #uname = getpass.getuser()
     # ofilebase = "DataFiles/" + currStamp + "_"
-    # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_V2\\uml\\DataFiles\\" + currStamp + "_"
+    # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\DataFiles\\" + currStamp + "_"
     print("First cost", firstCost)
 
     #ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"

@@ -2,8 +2,8 @@
 # coding: utf-8
 
 import xmltodict, glob
-from uml_V2.uml_lib import ebAPI_lib as eb
-from uml_V2.uml_lib import ebCostLib as ebCost
+from uml_python.uml_lib import ebAPI_lib as eb
+from uml_python.uml_lib import ebCostLib as ebCost
 # import ebAPI_lib_v2 as eb
 from datetime import datetime
 from openpyxl import Workbook

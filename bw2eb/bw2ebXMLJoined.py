@@ -1,8 +1,8 @@
 import os
 import datetime
 import glob
-import uml_V2.uml_lib.ebCostLib as ebCost
-import uml_V2.bw2eb.bw2eb as bw2eb
+import uml_python.uml_lib.ebCostLib as ebCost
+import uml_python.bw2eb.bw2eb as bw2eb
 
 def main():
     currStamp = bw2eb.tstamper2()

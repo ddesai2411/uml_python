@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from uml_V2.uml_lib import ebAPI_lib as eb
+from uml_python.uml_lib import ebAPI_lib as eb
 import glob
 import xmltodict
 import pandas as pd
-from uml_V2.uml_lib import web_lib as web
+from uml_python.uml_lib import web_lib as web
 from datetime import datetime
 
 def checkUMLPO(POFiles, filepath):

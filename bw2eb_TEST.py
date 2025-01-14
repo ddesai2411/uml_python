@@ -6,11 +6,11 @@ import ebCOST_newAPI.eb.ebPO.translate_BW_POs as tPO
 import ebCOST_newAPI.eb.ebInv.translate_BW_Invoices as tIN
 """
 
-import uml_V2.uml_lib.ebCostLib as eb
-import uml_V2.eb.ebPO.translate_BW_POs as tPO
-#import uml_V2.eb.ebPO.translate_BW_POs_WORKING as tPO
-import uml_V2.eb.ebInv.translate_BW_Invoices as tIN
-import uml_V2.uml_lib.web_lib as umlWeb
+import uml_python.uml_lib.ebCostLib as eb
+import uml_python.eb.ebPO.translate_BW_POs as tPO
+#import uml_python.eb.ebPO.translate_BW_POs_WORKING as tPO
+import uml_python.eb.ebInv.translate_BW_Invoices as tIN
+import uml_python.uml_lib.web_lib as umlWeb
 
 """
 v10p0

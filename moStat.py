@@ -7,7 +7,7 @@ from datetime import datetime
 #import newebapi_proj as proj_data
 #import newebapi_budg as budg_data
 
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 def newliner(s):
     # replace eb output of /n/n with Excel-ready \n\n.
@@ -298,7 +298,7 @@ def main():
     retVal["ProjCount"] = r-1
     monthStr = get_numeric_monthYear()
     #uname = getpass.getuser()
-    # oDir = "/Users/kysgattu/FIS/uml_v2/uml/outputfiles/"
+    # oDir = "/Users/kysgattu/FIS/uml_python/uml/outputfiles/"
     oDir = "B:\\MonthlyStatusReports\\"
     ofile = oDir + monthStr + "monthlyStatus.xlsx"
     retVal["ofile"] = ofile

@@ -3,8 +3,8 @@ import xmltodict, glob
 from datetime import datetime
 # import uml.eb.ebCostLib as ebCost
 # import uml.eb.ebAPI_lib as ebAPI
-import uml_V2.uml_lib.ebCostLib as ebCost
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.uml_lib.ebCostLib as ebCost
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 
 """

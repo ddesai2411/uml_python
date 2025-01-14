@@ -5,7 +5,7 @@
 
 #import eb.ebAPI_lib as eb
 import xmltodict
-from uml_V2.uml_lib import web_lib as web
+from uml_python.uml_lib import web_lib as web
 import os, shutil, glob
 
 def getFieldFromSource(source,field):

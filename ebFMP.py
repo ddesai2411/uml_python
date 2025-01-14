@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import uml_V2.uml_lib.ebAPI_lib as eb
+import uml_python.uml_lib.ebAPI_lib as eb
 from datetime import datetime
 
 def main():
@@ -68,7 +68,7 @@ def main():
     tstamp += str(now.hour) + str(now.minute) + str(now.second)
 
     # ofile = open("/Users/kysgattu/Desktop/ebFMP.html","w")
-    # filebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_V2\\uml\\outputfiles\\ebFMP.html"
+    # filebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\outputfiles\\ebFMP.html"
     # filebase = "C:\\inetpub\\wwwroot\\ebProj\\ebFMP.html"
     # filebase = "C:\\FISPython\\ebFMP.html"
     filebase = "/Users/kysgattu/FIS/BDrive/ebFMP.html"

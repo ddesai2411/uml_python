@@ -4,15 +4,15 @@ from tkinter import messagebox as mb
 from tkinter import filedialog as filedialog
 from tkinter import Tk, Label, Button
 from tkinter import ttk
-import uml_V2.uml_lib.ebAPI_lib as eb
-import uml_V2.moStat as moStat
-import uml_V2.ebTimeAlloc as timeAlloc
-import uml_V2.ebFMP as ebFMP
-import uml_V2.bw2eb.bw2eb as bw2eb
-import uml_V2.bw2eb.bw2ebXML as bw2ebXML
-import uml_V2.bw2eb.bw2ebJoined as bw2ebJoined
-import uml_V2.bw2eb.bw2ebXMLJoined as bw2ebXMLJoined
-import uml_V2.uml_lib.dailyDataImport as ebData
+import uml_python.uml_lib.ebAPI_lib as eb
+import uml_python.moStat as moStat
+import uml_python.ebTimeAlloc as timeAlloc
+import uml_python.ebFMP as ebFMP
+import uml_python.bw2eb.bw2eb as bw2eb
+import uml_python.bw2eb.bw2ebXML as bw2ebXML
+import uml_python.bw2eb.bw2ebJoined as bw2ebJoined
+import uml_python.bw2eb.bw2ebXMLJoined as bw2ebXMLJoined
+import uml_python.uml_lib.dailyDataImport as ebData
 
 import os
 import datetime

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import uml_V2.uml_lib.ebAPI_lib as ebAPI
+import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 def main():
 
