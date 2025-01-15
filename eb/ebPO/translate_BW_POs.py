@@ -56,8 +56,8 @@ def get_FMP_from_POdata(r):
     if currFMP == "NON EB":
         currFMP = ebCost.parse_Buyways_Description(r["Product Description"])
     #print("240211: FMP", currFMP)
-    #if currFMP == "NON FMP":
-    #    currFMP = r["Header Notes"][3:]
+    if currFMP == "NON FMP":
+        currFMP = ebCost.parseHeaderNotes(r["Header Notes"])
 
     return(currFMP)
                 
@@ -71,7 +71,6 @@ def parse_POcsv(theCSV,currStamp):
     budgTasks = ebCost.getBudgetTasks()
     ebProjs = ebAPI.get_Projects() #240209 ebProjs[<fmp>]["FMlead"]
     ebST = ebAPI.get_FundingRules()
-    ebProjs = ebAPI.get_Projects()
     activePOs = ebAPI.get_activePOs(ebProjs)
     ebCompanies = ebAPI.get_Companies_dict2()
     fundRules = ebAPI.get_FundingRules()
