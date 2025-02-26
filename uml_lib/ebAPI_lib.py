@@ -65,16 +65,6 @@ import concurrent.futures
 # POs, and/or invoices?
 # """
 #
-
-def get_FMP_from_EB_projID(i, ebProjs):
-    theFMP = "NOT FOUND"
-    for fmp in ebProjs:
-        if ebProjs[fmp]["projectId"] == i:
-            theFMP = fmp
-            break
-    return theFMP
-
-
 # # Connection to the API
 
 class BearerAuth(requests.auth.AuthBase):
