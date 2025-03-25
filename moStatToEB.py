@@ -58,8 +58,11 @@ def checkLead(dept, PM, Planner):
     elif dept == "Planning":
         if Planner == "TBD" or Planner == None:
             retVal = False
+    elif dept == "Urban Development":
+        if PM == "TBD" or PM == "":
+            retVal = False
     else:
-        "Dept is not PM or Planning", dept
+        "Dept is not PM or Planning or Urban Development", dept
     return retVal
 
 
@@ -73,6 +76,9 @@ def getMoStatData(projectName):
     currProjNames = []
     currFMPs = []
     currPrevStatusComments = []
+    currPrevScopeStatus = []
+    currPrevScheduleStatus = []
+    currPrevBudgetStatus = []
     currLeadDepts = []
     currProjHealths = []
     currPhases = []
@@ -97,11 +103,14 @@ def getMoStatData(projectName):
 
         currLeadDept = project_data[j]["FM Department Lead"]
         currStatusComments = project_data[j]["Status Comments"] #newliner here?
+        prevBudgetStatus = project_data[j]["Budget Status"]
+        prevScheduleStatus = project_data[j]["Schedule Status"]
+        prevScopeStatus = project_data[j]["Scope Status"]        
         currProjID = project_data[j]["projectId"] # Need this for lookup in Budget Data
         currPM = project_data[j]["Project Manager"]
         currPlanner = project_data[j]["Project Planner"]
         currPhase = project_data[j]["Project Phase"]
-        if currLeadDept == "Planning" or currLeadDept == "Project Management":
+        if currLeadDept == "Planning" or currLeadDept == "Project Management" or currLeadDept == "Urban Development":
             reportable = True # FIS or O&S, don't report
             definedLead = checkLead(currLeadDept, currPM, currPlanner)
         else:
@@ -120,6 +129,8 @@ def getMoStatData(projectName):
                             currStep = "PM Review"
                         elif currLeadDept == "Planning":
                             currStep = "Planning Review"
+                        elif currLeadDept == "Urban Development":
+                            currStep = "PM Review"
                         else:
                             currStep = "IGNORE: no updates"
                         #print currStatus, currTPC,currLeadDept,currStep
@@ -143,6 +154,9 @@ def getMoStatData(projectName):
                             currProjNames.append(currProjName)
                             currFMPs.append(currFMP)
                             currPrevStatusComments.append(currStatusComments)
+                            currPrevScheduleStatus.append(prevScheduleStatus)
+                            currPrevScopeStatus.append(prevScopeStatus)
+                            currPrevBudgetStatus.append(prevBudgetStatus)
                             currLeadDepts.append(currLeadDept)
                             currProjHealths.append(currProjHealth)
                             currPhases.append(currPhase)
@@ -173,6 +187,9 @@ def getMoStatData(projectName):
         moStatDict[currProjNames[i]] = {
             'FMP Number': currFMPs[i],
             'Previous Status Comments': currPrevStatusComments[i],
+            'Previous Schedule Status': currPrevScheduleStatus[i],
+            'Previous Scope Status': currPrevScopeStatus[i],
+            'Previous Budget Status': currPrevBudgetStatus[i],
             'FM Department Lead': currLeadDepts[i],
             'Project Health': currProjHealths[i],
             'Project Phase': currPhases[i],

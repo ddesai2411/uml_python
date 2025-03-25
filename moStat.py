@@ -3,7 +3,6 @@
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from datetime import datetime
-import re
 
 #import newebapi_proj as proj_data
 #import newebapi_budg as budg_data
