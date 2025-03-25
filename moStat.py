@@ -3,6 +3,7 @@
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from datetime import datetime
+import re
 
 #import newebapi_proj as proj_data
 #import newebapi_budg as budg_data
@@ -116,8 +117,11 @@ def checkLead(dept, PM, Planner):
     elif dept == "Planning":
         if Planner == "TBD" or Planner == None:
             retVal = False
+    elif dept == "Urban Development":
+        if PM == "TBD" or PM == None:
+            retVal = False
     else:
-        "Dept is not PM or Planning", dept
+        "Dept is not PM or Planning or Urban Development", dept
     return retVal
 
 def getDataFromAPI(processPrefix):
@@ -128,6 +132,9 @@ def getDataFromAPI(processPrefix):
             "Project/Status",
             "Project/CustomFields/FM Department Lead",
             "Project/CustomFields/Status Comments",
+            "Project/CustomFields/Schedule Status",
+            "Project/CustomFields/Scope Status",
+            "Project/CustomFields/Budget Status",
             "ProcessInstance/CurrentStepName"
         ],
         "Filters": [
@@ -167,10 +174,10 @@ def main():
     # 0> Create Excel
     outXL  = Workbook()
     outXL_WS = outXL.active
-    moStatHeaders = {1:"FMP Number",2:"Previous Status Comments",3:"FM Department Lead",4:"Project Health",\
-                     5:"Project Phase", 6: "Successor Projects?",7:"Enabling Projects", 8: "Current Project Start Date",\
-                     9:"Current Project End Date",10:"Step",11:"Total Current Working Estimate/TPC",12:"Monthly Status Report (Month of Report)",
-                     13:"Project Manager",14:"Planner"}
+    moStatHeaders = {1:"FMP Number", 2:"Previous Status Comments", 3:"Previous Scope Status", 4:"Previous Schedule Status", 5:"Previous Budget Status", 6:"FM Department Lead",\
+                     7:"Project Health", 8:"Project Phase", 9: "Successor Projects?", 10:"Enabling Projects", 11: "Current Project Start Date",\
+                     12:"Current Project End Date", 13:"Step", 14:"Total Current Working Estimate/TPC", 15:"Monthly Status Report (Month of Report)",\
+                     16:"Project Manager", 17:"Planner"}
     # NOTE: Other fields to add/review:
     # Project Health, Project Phase, Successor Projects?, Enabling Projects?
     # Current Project Start Date
@@ -208,15 +215,16 @@ def main():
             currProjName = project_data[j]["name"]#.encode("utf-8")
             currFMP = project_data[j]["FMP Number"]#.encode("utf-8")
             currStatus = project_data[j]["status"] # Project Status
-            #print ">>>>", currProjName, currFMP, currStatus
-
             currLeadDept = project_data[j]["FM Department Lead"]
             currStatusComments = project_data[j]["Status Comments"] #newliner here?
+            prevBudgetStatus = project_data[j]["Budget Status"]
+            prevScheduleStatus = project_data[j]["Schedule Status"]
+            prevScopeStatus = project_data[j]["Scope Status"]
             currProjID = project_data[j]["projectId"] # Need this for lookup in Budget Data
             currPM = project_data[j]["Project Manager"]
             currPlanner = project_data[j]["Project Planner"]
             currPhase = project_data[j]["Project Phase"]
-            if currLeadDept == "Planning" or currLeadDept == "Project Management":
+            if currLeadDept == "Planning" or currLeadDept == "Project Management" or currLeadDept == "Urban Development":
                 reportable = True # FIS or O&S, don't report
                 definedLead = checkLead(currLeadDept, currPM, currPlanner)
             else:
@@ -238,6 +246,8 @@ def main():
                                 currStep = "PM Review"
                             elif currLeadDept == "Planning":
                                 currStep = "Planning Review"
+                            elif currLeadDept == "Urban Development":
+                                currStep = "PM Review"
                             else:
                                 currStep = "IGNORE: no updates"
                             #print currStatus, currTPC,currLeadDept,currStep
@@ -247,42 +257,44 @@ def main():
                                     currComments_w_newlines = newliner(currStatusComments)
                                 except:
                                     currComments_w_newlines = "No previous comments"
-                                #print "\n?????\n", currComments_w_newlines
                                 write_cell(outXL_WS, r,2,currComments_w_newlines)
                                 cellStr = "B" + str(r)
                                 outXL_WS[cellStr].alignment = Alignment(wrapText=True)
-                                write_cell(outXL_WS,r,3,currLeadDept)
+                                write_cell(outXL_WS,r,3,prevScopeStatus)
+                                write_cell(outXL_WS,r,4,prevScheduleStatus)
+                                write_cell(outXL_WS,r,5,prevBudgetStatus)
+                                write_cell(outXL_WS,r,6,currLeadDept)
 
                                 if project_data[j]["Project Health"] == None:
                                     currProjHealth = "TBD"
                                 else:
                                     currProjHealth = project_data[j]["Project Health"]
-                                write_cell(outXL_WS,r,4,currProjHealth)#.encode("utf-8"))
+                                write_cell(outXL_WS,r,7,currProjHealth)#.encode("utf-8"))
 
-                                write_cell(outXL_WS,r,5,project_data[j]["Project Phase"])#.encode("utf-8"))
+                                write_cell(outXL_WS,r,8,project_data[j]["Project Phase"])#.encode("utf-8"))
                                 try:
                                     currSuccessorProjects = project_data[j]["Successor Projects"]#.encode("utf-8")
                                 except:
                                     currSuccessorProjects = ""
-                                write_cell(outXL_WS,r,6,currSuccessorProjects)
+                                write_cell(outXL_WS,r,9,currSuccessorProjects)
                                 try:
                                     currEnablingProjects = project_data[j]["Enabling Projects"]#.encode("utf-8")
                                 except:
                                     currEnablingProjects = ""
-                                write_cell(outXL_WS,r,7,currEnablingProjects)
+                                write_cell(outXL_WS,r,10,currEnablingProjects)
 
                                 # Date formats: need to confirm what EB wants and figure out what Excel does to it
                                 # may require quoting it as a string or formatting it
                                 # Raw text from API/web version is <d:StartDate m:type="Edm.DateTime">2019-09-17T00:00:00</d:StartDate>
                                 timeStr = convertDate(project_data[j]["startDate"])
-                                write_cell(outXL_WS,r,8,timeStr)
+                                write_cell(outXL_WS,r,11,timeStr)
                                 timeStr = convertDate(project_data[j]["targetDate"])
-                                write_cell(outXL_WS,r,9,timeStr)
-                                write_cell(outXL_WS,r,10,currStep)
-                                write_cell(outXL_WS,r,11,currTPC)
-                                write_cell(outXL_WS,r,12,monthYear)
-                                write_cell(outXL_WS,r,13,currPM)
-                                write_cell(outXL_WS,r,14,currPlanner)
+                                write_cell(outXL_WS,r,12,timeStr)
+                                write_cell(outXL_WS,r,13,currStep)
+                                write_cell(outXL_WS,r,14,currTPC)
+                                write_cell(outXL_WS,r,15,monthYear)
+                                write_cell(outXL_WS,r,16,currPM)
+                                write_cell(outXL_WS,r,17,currPlanner)
                                 r += 1
                             else:
                                 #print "Step was no updates?", currFMP, currProjName
