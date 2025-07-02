@@ -42,7 +42,7 @@ type_map = {
 }
 
 # Connect to SQL Server
-conn = pyodbc.connect('DRIVER={SQL Server};SERVER=arcgis-sql.fs.uml.edu;DATABASE=eBuilder;')
+conn = pyodbc.connect('DRIVER={SQL Server};SERVER=arcgis-sql-02.fs.uml.edu;DATABASE=eBuilder;')
 # Create cursor
 cursor = conn.cursor()
 
@@ -53,6 +53,11 @@ for name,data in File_Data.items():
 
     # Flatten the JSON data
     flattened_data = [flatten_json(record) for record in data]
+
+    for record in flattened_data:
+     for k, v in record.items():
+        if isinstance(v, (dict, list, tuple)):
+            record[k] = json.dumps(v)
     
     columns = list(set([column for record in flattened_data for column in record.keys()]))
 
@@ -65,7 +70,12 @@ for name,data in File_Data.items():
     # Insert data
     values = [[record.get(column) for column in columns] for record in flattened_data]
     placeholders = ','.join('?' * len(columns))
+    
     insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
+    print("INSERT SQL:", insert_sql)
+    print("First row of values:", values[0])
+    print("Types:", [type(v) for v in values[0]])
+
     cursor.executemany(insert_sql, values)
 
     print(table_name,'rows inserted')

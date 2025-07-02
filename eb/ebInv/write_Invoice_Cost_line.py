@@ -136,7 +136,7 @@ def write_Invoice_Cost_line(POrow, activePOs, fundRule, multiLine, ws):
     # 14: "Quantity"
     try:
         currQuant = POrow["Quantity"]
-        outCell = ws.cell(row=write_Invoice_Cost_line.counter, column=13)
+        outCell = ws.cell(row=write_Invoice_Cost_line.counter, column=14)
         outCell.value = currQuant
     except:
         noQuant = True

@@ -152,20 +152,33 @@ main_window.title("EB Python Dashboard")
 main_window.geometry('900x900')
 # hsb = ttk.Scrollbar(window, orient='horizontal')
 
-# Create a canvas with scrollbars
+# --- Add vertical scrollbar and connect it to the canvas ---
 canvas = tk.Canvas(main_window)
-canvas.pack(fill=tk.X, expand=True)
+canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+v_scrollbar = ttk.Scrollbar(main_window, orient="vertical", command=canvas.yview)
+v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+canvas.configure(yscrollcommand=v_scrollbar.set)
+
+# Create a frame inside the canvas for all content
+window = ttk.Frame(canvas)
+canvas_window = canvas.create_window((0, 0), window=window, anchor="nw")
 
 # Bind mousewheel event to canvas
 canvas.bind_all("<MouseWheel>", on_mousewheel)
 
-title = ttk.Label(canvas, text="UMass Lowell Facilities EB Dashboard", style='Head.TLabel')
+title = ttk.Label(window, text="UMass Lowell Facilities EB Dashboard", style='Head.TLabel')
 # title.grid(column=1, row=0, padx=xdPad, pady=ydPad, sticky=tk.W)
 title.pack()
 
 # Create a frame to hold all the elements
 window = ttk.Frame(canvas)
-window.pack()
+canvas_window = canvas.create_window((0, 0), window=window, anchor="nw")
+
+# Update scrollregion when the frame size changes
+def on_frame_configure(event):
+    canvas.configure(scrollregion=canvas.bbox("all"))
+window.bind("<Configure>", on_frame_configure)
 
 style = ttk.Style()
 style.configure('Head.TLabel', font=('Arial', 22, 'bold', 'underline'), foreground = 'black', align ='center')

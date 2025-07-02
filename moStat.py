@@ -235,8 +235,11 @@ def main():
             if reportable == True and closeout == False:
                 if currStatus == "Active" or currStatus == "TD Active":
                     print (">>>>", currPhase, currPhase[:2])
-                    if currPhase[:2] != "08":
-                        #print "Not 08", currPhase
+                    if currPhase[:2] == "08" or currPhase[:2] == "07A":
+                        #print "Lead is not defined (TBD or None)"
+                        ignoreThis = 1
+                        print ("Undefined lead", currFMP, currProjName, currLeadDept, currPM, currPlanner)
+                    else:
                         if definedLead == True:
                             #print currFMP
                             currTPC = get_TPC(budget_data, currProjID)
@@ -298,10 +301,6 @@ def main():
                             else:
                                 #print "Step was no updates?", currFMP, currProjName
                                 retVal["No Updates"] += 1
-                    else:
-                        #print "Lead is not defined (TBD or None)"
-                        ignoreThis = 1
-                        print ("Undefined lead", currFMP, currProjName, currLeadDept, currPM, currPlanner)
                 else:
                     #print "Ignoring - not Active or TD Active", currFMP, currProjName
                     retVal["Not Active"] += 1

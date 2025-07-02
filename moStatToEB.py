@@ -119,8 +119,12 @@ def getMoStatData(projectName):
             if currStatus == "Active" or currStatus == "TD Active" or currProjName == 'zzTEST Integration' or currProjName == '*TEST - PGB Test':
                 #print (">>>>", currPhase, currPhase[:2])
                 ignoreCounts += 1
-                if currPhase[:2] != "08":
-                    #print "Not 08", currPhase
+                if currPhase[:2] == "08" or currPhase[:2] == "07A":
+                     ignoreThis = 1
+                    ignoreCounts += 1
+                    #print ("Undefined lead", currFMP, currProjName, currLeadDept, currPM, currPlanner)
+                    #print "Not 08, 07A", currPhase
+                else:
                     if definedLead == True:
                         #print currFMP
                         currTPC = get_TPC(budget_data, currProjID)
@@ -173,11 +177,7 @@ def getMoStatData(projectName):
                             #print ("Step was no updates?", currFMP, currProjName)
                             ignoreCounts += 1
                             #retVal["No Updates"] += 1
-                else:
-                    #print "Lead is not defined (TBD or None)"
-                    ignoreThis = 1
-                    ignoreCounts += 1
-                    #print ("Undefined lead", currFMP, currProjName, currLeadDept, currPM, currPlanner)
+                   
             else:
                 ignoreCounts += 1
                 #print ("Ignoring - not Active or TD Active", currFMP, currProjName)
