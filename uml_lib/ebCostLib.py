@@ -29,15 +29,6 @@ def checkBWcsv(theFile):
         fp = open(theFile)
         last_pos = fp.tell()
         line = fp.readline()
-        # 200831
-        """
-        if line == POheader:
-            retVal = "isPO"
-        elif line == VoucherHeader:
-            retVal = "isVoucher"
-        else:
-            retVal = "notBW"
-        """
         if line[:40] == POheader[:40]:
             retVal = "isPO"
         elif line[:40] == VoucherHeader[:40]:
