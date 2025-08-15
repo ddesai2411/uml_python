@@ -1,16 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+import os
+import csv, datetime
 import json
-from pathlib import Path
-from urllib.parse import urlencode
-from typing import Optional
-from uml_lib.ebAPI_config import eBuilderConfig, load_config
+import requests
 import concurrent.futures
-from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError
-from uml_lib.ebAPI_tokenresponse import eBuilderTokenResponse
-from uml_lib.ebAPI_response import ebResponse, ResponseMeta
+
 
 # """
 # ebAPI_lib v2.0
@@ -71,262 +67,58 @@ from uml_lib.ebAPI_response import ebResponse, ResponseMeta
 #
 # # Connection to the API
 
-_APIToken: Optional[eBuilderTokenResponse] = None
-_APIConfig: Optional[eBuilderConfig] = None
+class BearerAuth(requests.auth.AuthBase):
+    def __init__(self, token):
+        self.token = token
 
-def get_config() -> eBuilderConfig:
-    global _APIConfig
+    def __call__(self, r):
+        r.headers["authorization"] = "Bearer " + self.token
+        return r
 
-    if _APIConfig is not None:
-        return _APIConfig
-
-    _APIConfig = load_config(Path("config.ebuilder.json"))
-
-    return _APIConfig
-
-def get_ebToken(timeout: float = 30.0) -> eBuilderTokenResponse:
-    global _APIToken
-
-    if _APIToken is not None:
-        return _APIToken
-
-    cfg = get_config()
-    url = cfg.hostname + "/api/v2/authenticate"
-
-    form = {
-        "grant_type": "password",
-        "username": cfg.username,
-        "password": cfg.password,
+def get_ebToken():
+    payload = {
+        'grant_type': 'password',
+        'username': "ebuilder@uml.edu",
+        'password': "4fe917fe108c443c8eb374e15548f70f"
     }
 
-    data = urlencode(form).encode("utf-8")
-    req = Request(url, data=data, method="POST")
-    req.add_header("Content-Type", "application/x-www-form-urlencoded")
+    r = requests.post("https://api2.e-builder.net/api/v2/authenticate",
+                      headers={"Content-Type": "application/x-www-form-urlencoded"},
+                      data=payload)
 
-    try:
-        with urlopen(req, timeout=timeout) as resp:
-            charset = resp.headers.get_content_charset() or "utf-8"
-            text = resp.read().decode(charset)
-    except HTTPError as e:
-        # Optionally read error body for debugging
-        try:
-            body = e.read().decode("utf-8", errors="replace")
-        except Exception:
-            body = ""
-        raise HTTPError(e.url, e.code, f"{e.reason}. Response body: {body}", e.headers, e.fp)
-    except URLError:
-        raise
+    reqDict = json.loads(r.content)
+    ebTok = reqDict["access_token"]
+    return ebTok
 
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Expected JSON response, got: {text[:200]}") from e
+ebTok = get_ebToken()
+#print (ebTok)
 
-    if not isinstance(payload, dict):
-        raise ValueError("Expected JSON object at top level in token response")
+def APIconnect(module):
+    print("Connecting to the API to get " + module)
+    modStr = "https://api2.e-builder.net/api/v2/" + module + "?$format=json"
+    print(modStr)
+    #ebTok = get_ebToken()
+    response = requests.get(modStr, auth = BearerAuth(ebTok))
+    mystr = response.content
+    data =  json.loads(mystr)
+    return data #this data is not in the same format as the data in old api, modifications are needed to be done which are defined in the module specific methods.
 
-    _APIToken = eBuilderTokenResponse.from_dict(payload)
-    return _APIToken
-
-def get_request(url: str, timeout: float = 30.0) -> str:
-    """
-    Perform a single GET request with auth + JSON headers and return decoded text.
-    Adds the response body to HTTPError for easier troubleshooting.
-    """
-    token = get_ebToken()
-    req = Request(url, method="GET")
-    req.add_header("Authorization", f"Bearer {token.access_token}")
-    req.add_header("Accept", "application/json")
-    try:
-        # Open the URL with timeout and decode using server-provided charset (default utf-8).
-        with urlopen(req, timeout=timeout) as resp:
-            charset = resp.headers.get_content_charset() or "utf-8"
-            return resp.read().decode(charset)
-    except HTTPError as e:
-        # If the server returns an error status, try to include its body in the exception.
-        try:
-            body = e.read().decode("utf-8", errors="replace")
-        except Exception:
-            body = ""
-        # Re-raise HTTPError with an augmented message that includes the body preview.
-        raise HTTPError(e.url, e.code, f"{e.reason}. Response body: {body}", e.headers, e.fp)
-    except URLError:
-        # Propagate connection/transport errors as-is for the caller to handle.
-        raise
+#def getFromAPI(URL):
 
 
-def APIconnect(module: str, timeout: float = 30.0) -> ebResponse:
-    cfg = get_config()
+def postTOAPI(URL, data):
+    response = requests.post(URL, json = data, auth=BearerAuth(ebTok))
+    #print(response.content)
+    myStr = response.content
+    data = json.loads(myStr)
+    if 'records' not in data:
+        return data #myStr
 
-    # Build the base URL. `?$format=json` requests JSON output; pagination params get appended later.
-    base_url = cfg.hostname + f"/api/v2/{module}?$format=json&limit=1"
+        #print('Data Import Failed!')
 
-    # Fetch the first page.
-    text = get_request(base_url)
-
-    # Parse the response as JSON, including a helpful preview on parse failure.
-    try:
-        payload = json.loads(text)
-    except json.JSONDecodeError as e:
-        preview = text[:200] if isinstance(text, str) else ""
-        raise ValueError(f"Response was not valid JSON (first 200 chars): {preview}") from e
-
-    # Top-level must be an object (dict), not an array or primitive.
-    if not isinstance(payload, dict):
-        raise ValueError("Expected top-level JSON object")
-
-    # Extract expected top-level fields (some may be optional depending on endpoint).
-    query = payload.get("query")
-    meta = payload.get("meta")
-    records = payload.get("records")
-
-    # Normalize query to a string; fallback to the module name if it's missing/non-string.
-    if not isinstance(query, str):
-        query = str(module)
-
-    # Validate presence/type of the meta object.
-    if not isinstance(meta, dict):
-        raise ValueError("Expected 'meta' to be an object")
-
-    # Ensure required meta keys exist.
-    required_meta_keys = ("href", "offset", "limit", "size", "totalRecords")
-    missing_meta = [k for k in required_meta_keys if k not in meta]
-    if missing_meta:
-        raise ValueError(f"Missing meta keys: {', '.join(missing_meta)}")
-
-    # Parse and type-check meta fields, raising ValueError with the original exception chained.
-    try:
-        current_offset = int(meta["offset"])
-        limit = int(meta["limit"])
-        size = int(meta["size"])
-        total_records = int(meta["totalRecords"])
-        href = str(meta["href"])
-    except Exception as e:
-        raise ValueError(f"Invalid 'meta' field types: {e}") from e
-
-    # The 'records' field may be:
-    #   - None: no data yet (treat as empty list)
-    #   - list: standard list of records (typical for paginated collections)
-    #   - other (e.g., dict): a single object response; return early in that case
-    if records is None:
-        all_records = []
-    elif isinstance(records, list):
-        # Copy to avoid mutating the original list from the parsed payload.
-        all_records = list(records)
     else:
-        # Single-object response: construct meta and return immediately.
-        meta_obj = ResponseMeta(
-            href=href,
-            offset=current_offset,
-            limit=limit,
-            size=size,
-            totalRecords=total_records,
-        )
-        return ebResponse(query=query, meta=meta_obj, records=records)
-
-    # Auto-pagination loop: continue requesting pages until we've collected all records.
-    while total_records > len(all_records):
-        # Compute next offset; guard against non-progressing offsets (to avoid infinite loops).
-        next_offset = current_offset + limit
-        if next_offset <= current_offset:
-            break  # Safety guard: something is wrong with pagination numbers.
-
-        # If we've already pulled 'size' records and totalRecords == size, there's nothing more.
-        if len(all_records) >= size and total_records == size:
-            break  # Nothing more to fetch
-
-        # Request next page by appending &offset.
-        page_url = f"{base_url}&offset={next_offset}"
-        page_text = get_request(page_url)
-
-        # Parse the subsequent page; include preview on parse failure.
-        try:
-            page_payload = json.loads(page_text)
-        except json.JSONDecodeError as e:
-            preview = page_text[:200] if isinstance(page_text, str) else ""
-            raise ValueError(f"Subsequent page was not valid JSON (first 200 chars): {preview}") from e
-
-        if not isinstance(page_payload, dict):
-            raise ValueError("Expected top-level JSON object for subsequent page")
-
-        # Extract meta and records for the page; meta may adjust iteration variables.
-        page_meta = page_payload.get("meta")
-        page_records = page_payload.get("records")
-
-        if isinstance(page_meta, dict):
-            try:
-                # Use page-provided values when present; otherwise fall back to prior ones.
-                page_offset = int(page_meta.get("offset", next_offset))
-                page_limit = int(page_meta.get("limit", limit))
-                page_size = int(page_meta.get("size", 0))
-
-                # Update iteration state with the page's meta.
-                current_offset = page_offset
-                limit = page_limit
-                size = page_size  # size of the last fetched page
-                href = str(page_meta.get("href", href))
-
-                # totalRecords should be stable across pages; if provided, keep it consistent.
-                pr_total = page_meta.get("totalRecords")
-                if pr_total is not None:
-                    total_records = int(pr_total)
-            except Exception as e:
-                raise ValueError(f"Invalid 'meta' field types on subsequent page: {e}") from e
-        else:
-            # If no meta present, at least advance our offset based on what we requested.
-            current_offset = next_offset
-
-        # Handle no/empty records cases and enforce list type for subsequent pages.
-        if page_records is None:
-            break  # No more data available from the server.
-        if not isinstance(page_records, list):
-            raise ValueError("Expected 'records' to be a list on subsequent page")
-        if not page_records:
-            break  # Empty page -> stop.
-
-        # Accumulate records and stop if we've reached the advertised total.
-        all_records.extend(page_records)
-        if len(all_records) >= total_records:
-            break
-
-    # Build final meta reflecting the aggregation we performed.
-    final_meta = ResponseMeta(
-        href=href,
-        offset=current_offset,
-        limit=limit,
-        size=len(all_records),  # number of records actually aggregated
-        totalRecords=total_records,
-    )
-
-    # Return the structured response with the full dataset.
-    return ebResponse(query=query, meta=final_meta, records=all_records)
-
-def postTOAPI(URL, data, timeout: float = 30.0) -> Any:
-    token = get_ebToken()
-    request = Request(method='POST', url=URL, data=data)
-    request.add_header('Content-Type', 'application/json')
-    request.add_header('Authorization', 'Bearer ' + token.access_token)
-
-    try:
-        with urlopen(req, timeout=timeout) as resp:
-            charset = resp.headers.get_content_charset() or "utf-8"
-            response = resp.read().decode(charset)
-            data = json.loads(response)
-            if 'records' not in data:
-                print ('Data Import Failed!')
-            else:
-                print("Data imported Successfully!!!")
-
-            return data
-    except HTTPError as e:
-        # Optionally read error body for debugging
-        try:
-            body = e.read().decode("utf-8", errors="replace")
-        except Exception:
-            body = ""
-        raise HTTPError(e.url, e.code, f"{e.reason}. Response body: {body}", e.headers, e.fp)
-    except URLError:
-        raise
+        print("Data imported Successfully!!!")
+        return data
 
 # # Projects
 
@@ -359,12 +151,10 @@ def write_FMP(proj_data):
     #ofile.close()
 
 def get_project_data(record):
-    cfg = get_config()
-
     project_id = record["projectId"]
-    theURL = cfg.hostname + "/api/v2/Projects/" + project_id + "/customfields"
-    response = get_request(theURL)
-    custom_fields_raw = json.loads(response)
+    theURL = "https://api2.e-builder.net/api/v2/Projects/" + project_id + "/customfields"
+    response = requests.get(theURL, auth=BearerAuth(ebTok))
+    custom_fields_raw = json.loads(response.content)
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -373,8 +163,7 @@ def get_project_data(record):
     return project_data
 
 def get_project_allData():
-    response = APIconnect("Projects")
-    records = response.records
+    records = APIconnect("Projects")['records']
     project_all_data = []
     i = 0
     while i < len(records):
