@@ -459,17 +459,23 @@ def get_FMP_from_EB_projID(i, ebProjs):
 # # Budgets
 
 def get_budget_data(record):
+    cfg = get_config()
+
     budget_id = record["budgetId"]
-    theURL = "https://api2.e-builder.net/api/v2/Budgets/" + budget_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+#    theURL = "https://api2.e-builder.net/api/v2/Budgets/" + budget_id + "/customfields"
+#    response = requests.get(theURL, auth=BearerAuth(ebTok))
+
+    theURL = cfg.hostname + "/api/v2/Budgets/" + budget_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
         dict_custom_fields_details[custom_fields_details[j]['name']] = custom_fields_details[j]['value']
     budget_data = record | dict_custom_fields_details
     return budget_data
-
 
 def get_budget_all_data():
     records = APIconnect("Budgets")['records']
@@ -506,10 +512,19 @@ def get_Budgets():
 # # Commitments
 
 def get_commitment_data(record):
+
+    cfg = get_config()
+
     commitment_id = record["commitmentID"]
-    theURL = "https://api2.e-builder.net/api/v2/Commitments/" + commitment_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+   #theURL = "https://api2.e-builder.net/api/v2/Commitments/" + commitment_id + "/customfields"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+
+    theURL = cfg.hostname + "/api/v2/Commitments/" + commitment_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
+
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -673,10 +688,18 @@ def build_commitTypes(activePOs):
 
 
 def get_commitmentItems_data(record):
+    cfg = get_config()
+
     commitment_id = record['commitmentID']
-    theURL = "https://api2.e-builder.net/api/v2/Commitments/" + commitment_id + "/items"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    item_data_raw = json.loads(response.content)
+
+    #theURL = "https://api2.e-builder.net/api/v2/Commitments/" + commitment_id + "/items"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+    theURL = cfg.hostname + "/api/v2/Commitments/" + commitment_id + "/items"
+    response = get_request(theURL)
+
+    #item_data_raw = json.loads(response.content)
+    item_data_raw = json.loads(response)
+
     item_data_details = item_data_raw['details']
     return item_data_details
 
@@ -703,10 +726,18 @@ def get_commitmentItems_allData():
 # # Invoices
 
 def get_invoice_data(record):
+    cfg = get_config()
+
     invoice_id = record["invoiceId"]
-    theURL = "https://api2.e-builder.net/api/v2/commitmentinvoices/" + invoice_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+
+    #theURL = "https://api2.e-builder.net/api/v2/commitmentinvoices/" + invoice_id + "/customfields"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+    theURL = cfg.hostname + "/api/v2/commitmentinvoices/" + invoice_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
+
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -1004,10 +1035,18 @@ def get_FundingRules_FMP():
 # # Companies
 
 def get_companies_data(record):
+    cfg = get_config()
+
     company_id = record["companyId"]
-    theURL = "https://api2.e-builder.net/api/v2/companies/" + company_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+    #theURL = "https://api2.e-builder.net/api/v2/companies/" + company_id + "/customfields"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+
+    theURL = cfg.api_url + "/api/v2/companies/" + company_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
+
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -1062,10 +1101,19 @@ def get_Companies_dict2():
 ## Funding Sources
 
 def get_fundingSources_data(record):
+    cfg = get_config()
+
     fundingSource_id = record["fundingSourceID"]
-    theURL = "https://api2.e-builder.net/api/v2/fundingSources/" + fundingSource_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+
+    #theURL = "https://api2.e-builder.net/api/v2/fundingSources/" + fundingSource_id + "/customfields"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+
+    theURL = cfg.api_url + "/api/v2/fundingSources/" + fundingSource_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
+
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -1120,7 +1168,10 @@ def getPOREQDataNonCostProcess():
             },
         ],
     }
-    theURL = 'https://api2.e-builder.net/api/v2/noncostprocesses/query?processprefix=POREQ'
+    #theURL = 'https://api2.e-builder.net/api/v2/noncostprocesses/query?processprefix=POREQ'
+    cfg =  get_config()
+    theURL = cfg.api_url + "/api/v2/noncostprocesses/query?processprefix=POREQ"
+
     print('Getting POREQ data')
     POREQjson = postTOAPI(theURL, POREQdatafields)['records']
     return POREQjson
@@ -1161,7 +1212,9 @@ def getPOREQData():
                 }
                ]
     }
-    theURL = 'https://api2.e-builder.net/api/v2/CommitmentProcesses/query?processprefix=POREQ'
+    #theURL = 'https://api2.e-builder.net/api/v2/CommitmentProcesses/query?processprefix=POREQ'
+    cfg =  get_config()
+    theURL = cfg.api_url + "/api/v2/CommitmentProcesses/query?processprefix=POREQ"
     print('Getting POREQ data')
     POREQjson = postTOAPI(theURL, POREQdatafields)['records']
     return POREQjson
