@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 from typing import Optional
 from uml_lib.ebAPI_config import eBuilderConfig, load_config
 import concurrent.futures
+from typing import Any
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from uml_lib.ebAPI_tokenresponse import eBuilderTokenResponse
@@ -159,7 +160,7 @@ def APIconnect(module: str, timeout: float = 30.0) -> ebResponse:
     cfg = get_config()
 
     # Build the base URL. `?$format=json` requests JSON output; pagination params get appended later.
-    base_url = cfg.hostname + f"/api/v2/{module}?$format=json&limit=1"
+    base_url = cfg.hostname + f"/api/v2/{module}?$format=json"
 
     # Fetch the first page.
     text = get_request(base_url)
@@ -303,9 +304,11 @@ def APIconnect(module: str, timeout: float = 30.0) -> ebResponse:
 
 def postTOAPI(URL, data, timeout: float = 30.0) -> Any:
     token = get_ebToken()
-    request = Request(method='POST', url=URL, data=data)
-    request.add_header('Content-Type', 'application/json')
-    request.add_header('Authorization', 'Bearer ' + token.access_token)
+
+    req = Request(URL, method="POST", data=data.encode("utf-8"))
+    req.add_header("Authorization", f"Bearer {token.access_token}")
+    req.add_header("Accept", "application/json")
+    req.add_header("Content-Type", "application/json")
 
     try:
         with urlopen(req, timeout=timeout) as resp:
@@ -388,7 +391,7 @@ def get_project_allData():
     return project_all_data
 
 def get_active_project_all_data():
-    records = APIconnect("Projects")['records']
+    records = APIconnect("Projects").records
     active_records = [record for record in records if record['status'] in ["Active", "TD Active"]]
     active_project_all_data = []
     i = 0
@@ -478,7 +481,7 @@ def get_budget_data(record):
     return budget_data
 
 def get_budget_all_data():
-    records = APIconnect("Budgets")['records']
+    records = APIconnect("Budgets").records
     budget_all_data = []
     i = 0
     while i < len(records):
@@ -533,7 +536,7 @@ def get_commitment_data(record):
     return commitment_data
 
 def get_commitment_all_data():
-    records = APIconnect("Commitments")['records']
+    records = APIconnect("Commitments").records
     commitment_all_data = []
     i = 0
     while i < len(records):
@@ -704,7 +707,7 @@ def get_commitmentItems_data(record):
     return item_data_details
 
 def get_commitmentItems_allData():
-    records = APIconnect("Commitments")['records']
+    records = APIconnect("Commitments").records
     commitmentItemdata = []
 
     i = 0
@@ -746,7 +749,7 @@ def get_invoice_data(record):
     return invoice_data
 
 def get_invoice_allData():
-    records = APIconnect("commitmentinvoices")['records']
+    records = APIconnect("commitmentinvoices").records
     invoice_all_data = []
     i = 0
     while i < len(records):
@@ -901,7 +904,7 @@ def getPOs_for_Invoices():
 
 def get_fundingRules_allData():
     # Funding Rules does not have any custom fields; hence the all the data can be pulled from records field of APIconnect
-    fundingRules_all_data = APIconnect("FundingRules")['records']
+    fundingRules_all_data = APIconnect("FundingRules").records
     return fundingRules_all_data
 #print(get_fundingRules_allData())
 
@@ -1041,7 +1044,7 @@ def get_companies_data(record):
     #theURL = "https://api2.e-builder.net/api/v2/companies/" + company_id + "/customfields"
     #response = requests.get(theURL, auth=BearerAuth(ebTok))
 
-    theURL = cfg.api_url + "/api/v2/companies/" + company_id + "/customfields"
+    theURL = cfg.hostname + "/api/v2/companies/" + company_id + "/customfields"
     response = get_request(theURL)
 
     #custom_fields_raw = json.loads(response.content)
@@ -1055,7 +1058,7 @@ def get_companies_data(record):
     return company_data
 
 def get_companies_allData():
-    records = APIconnect("companies")['records']
+    records = APIconnect("companies").records
     company_all_data = []
     i = 0
     while i < len(records):
@@ -1108,7 +1111,7 @@ def get_fundingSources_data(record):
     #theURL = "https://api2.e-builder.net/api/v2/fundingSources/" + fundingSource_id + "/customfields"
     #response = requests.get(theURL, auth=BearerAuth(ebTok))
 
-    theURL = cfg.api_url + "/api/v2/fundingSources/" + fundingSource_id + "/customfields"
+    theURL = cfg.hostname + "/api/v2/fundingSources/" + fundingSource_id + "/customfields"
     response = get_request(theURL)
 
     #custom_fields_raw = json.loads(response.content)
@@ -1122,7 +1125,7 @@ def get_fundingSources_data(record):
     return fundingSource_data
 
 def get_fundingSources_allData():
-    records = APIconnect("fundingSources")['records']
+    records = APIconnect("fundingSources").records
     fundingSource_all_data = []
     i = 0
     while i < len(records):
@@ -1170,7 +1173,7 @@ def getPOREQDataNonCostProcess():
     }
     #theURL = 'https://api2.e-builder.net/api/v2/noncostprocesses/query?processprefix=POREQ'
     cfg =  get_config()
-    theURL = cfg.api_url + "/api/v2/noncostprocesses/query?processprefix=POREQ"
+    theURL = cfg.hostname + "/api/v2/noncostprocesses/query?processprefix=POREQ"
 
     print('Getting POREQ data')
     POREQjson = postTOAPI(theURL, POREQdatafields)['records']
@@ -1214,9 +1217,9 @@ def getPOREQData():
     }
     #theURL = 'https://api2.e-builder.net/api/v2/CommitmentProcesses/query?processprefix=POREQ'
     cfg =  get_config()
-    theURL = cfg.api_url + "/api/v2/CommitmentProcesses/query?processprefix=POREQ"
+    theURL = cfg.hostname + "/api/v2/CommitmentProcesses/query?processprefix=POREQ"
     print('Getting POREQ data')
-    POREQjson = postTOAPI(theURL, POREQdatafields)['records']
+    POREQjson = postTOAPI(theURL, json.dumps(POREQdatafields))['records']
     return POREQjson
 
 
