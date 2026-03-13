@@ -1,9 +1,9 @@
 import csv, datetime, getpass, chardet
-import uml_python.uml_lib.ebCostLib as ebCost
+import uml_lib.ebCostLib as ebCost
 # Cost line - 230731 - working on FMP in description/simplifying code
-import uml_python.eb.ebPO.write_PO_Cost_line as wPOC
-import uml_python.eb.ebPO.write_PO_Process_line as wPOP
-import uml_python.uml_lib.ebAPI_lib as ebAPI
+import eb.ebPO.write_PO_Cost_line as wPOC
+import eb.ebPO.write_PO_Process_line as wPOP
+import uml_lib.ebAPI_lib as ebAPI
 
 
 # basic_Buyways_POs

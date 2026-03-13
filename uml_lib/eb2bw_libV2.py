@@ -5,7 +5,7 @@ import requests
 from datetime import datetime
 import lxml.etree
 import xmltodict
-from uml.uml_lib import ebAPI_lib as eb
+from uml_lib import ebAPI_lib as eb
 
 Xdir = "X:\\_ebuilder\\POREQ\\_eb2bw\\"
 

@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from urllib.parse import urlencode
 from typing import Optional
-from uml_lib.ebAPI_config import eBuilderConfig, load_config
+from uml_lib.ebAPI_config import eBuilderConfig, load_config, resolve_config_path
 import concurrent.futures
 from typing import Any
 from urllib.request import Request, urlopen
@@ -84,6 +84,32 @@ def get_config() -> eBuilderConfig:
     _APIConfig = load_config(Path("config.ebuilder.json"))
 
     return _APIConfig
+
+
+def get_cache_dir(create: bool = False) -> Path:
+    cfg = get_config()
+    cache_dir = resolve_config_path(cfg.data_cache_dir, "data_cache_dir")
+
+    if create:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return cache_dir
+
+    if not cache_dir.exists():
+        raise FileNotFoundError(
+            f"Configured data cache directory does not exist: {cache_dir}. "
+            "Update 'data_cache_dir' in config.ebuilder.json or create the folder first."
+        )
+    if not cache_dir.is_dir():
+        raise NotADirectoryError(f"Configured data cache path is not a directory: {cache_dir}")
+
+    return cache_dir
+
+
+def get_fmp_output_file() -> Path:
+    cfg = get_config()
+    output_file = resolve_config_path(cfg.fmp_output_file, "fmp_output_file")
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    return output_file
 
 def get_ebToken(timeout: float = 30.0) -> eBuilderTokenResponse:
     global _APIToken
@@ -1227,10 +1253,13 @@ def getPOREQData():
 
 def getDataFromCache(module):
     # print("Getting ",module," data from Cache to reduce load on API. Run the commented lines instead to get fresh data")
-    #dir = '/Users/kysgattu/FIS/ebData/'
-    dir = "B:\\ebData\\"
-    file = dir + module + '.json'
-    with open(file, 'r') as f:
+    file = get_cache_dir() / f"{module}.json"
+    if not file.exists():
+        raise FileNotFoundError(
+            f"Cache file not found: {file}. Run ebData after configuring 'data_cache_dir' in config.ebuilder.json."
+        )
+
+    with file.open('r', encoding='utf-8') as f:
         module_data = json.loads(f.read())
     return module_data
 

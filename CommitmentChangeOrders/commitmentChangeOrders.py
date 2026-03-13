@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-from uml_python.uml_lib import ebAPI_lib as eb
+from uml_lib import ebAPI_lib as eb
 import glob
 import xmltodict
 import pandas as pd
-from uml_python.uml_lib import web_lib as web
+from uml_lib import web_lib as web
 from datetime import datetime
 
 def checkUMLPO(POFiles, filepath):
@@ -276,121 +276,104 @@ def getHTML(oDir,htmlData):
     html_file.write(htmlData)
     return htmlData
 
-# ## Get POs From E-Builder
-ebProjs = eb.get_Projects()
-activePOs = eb.get_activePOs(ebProjs)
-#activePOs['L001138273']
-ebPOs = {k: v['Value'] for k, v in activePOs.items()}
-del ebPOs[None]
-ebPOs = dict(sorted(ebPOs.items()))
+def main():
+    ebProjs = eb.get_Projects()
+    activePOs = eb.get_activePOs(ebProjs)
+    ebPOs = {k: v['Value'] for k, v in activePOs.items()}
+    del ebPOs[None]
+    ebPOs = dict(sorted(ebPOs.items()))
 
-# ## Get POs From Buyways XML Files
-# In[25]:
-
-theDir = "fromBW/"
-POFiles = glob.glob(theDir + "*_PO_*.xml")
-PO_dict = checkUMLPO(POFiles, theDir)
-UMLPOFiles = PO_dict['UMLPOFiles']
-BWPOs = {}
-for f in UMLPOFiles:
-    theFile = open(f, encoding='utf-8')
-    # print(count,f)
-    xml_content = theFile.read()
-    bwdata = xmltodict.parse(xml_content, encoding='utf-8')
-    headerData = bwdata['PurchaseOrderMessage']['PurchaseOrder']['POHeader']
-    POlinedata = bwdata['PurchaseOrderMessage']['PurchaseOrder']['POLine']
-    currPONumber = getCurrPONum(headerData)
-    #print(currPONumber)
-    if type(POlinedata) == dict:
-        currExtendedPrice = getPOCurrCommitItemAmnt(POlinedata)
-        currUnitQuantity = float(getCurrItemQuantity(POlinedata))
-        currUnitPrice = float(getPOCurrUnitPrice(POlinedata))
-        if currExtendedPrice == 'Field Not Found in XML':
-            currTotalPrice = currUnitPrice * currUnitQuantity
-        else:
-            currTotalPrice = float(currExtendedPrice)
-        currShippingCharges = float(getShippingCharges(POlinedata))
-        currHandlingCharges = float(getHandlingCharges(POlinedata))
-        currTax1 = float(getTax1(POlinedata))
-        currTax2 = float(getTax2(POlinedata))
-        currOtherCharges = currShippingCharges + currHandlingCharges + currTax1 +currTax2
-        currTotalCost = currTotalPrice + currOtherCharges
-        currTotalCost = float('{:.2f}'.format(float(currTotalCost)))
-        BWPOs[currPONumber] = currTotalCost
-        # print('----------------------')
-    else:
-        currTotalCost = 0
-        for k in POlinedata:
-
-            currExtendedPrice = getPOCurrCommitItemAmnt(k)
-            currUnitQuantity = float(getCurrItemQuantity(k))
-            currUnitPrice = float(getPOCurrUnitPrice(k))
+    theDir = "fromBW/"
+    POFiles = glob.glob(theDir + "*_PO_*.xml")
+    PO_dict = checkUMLPO(POFiles, theDir)
+    UMLPOFiles = PO_dict['UMLPOFiles']
+    BWPOs = {}
+    for f in UMLPOFiles:
+        theFile = open(f, encoding='utf-8')
+        xml_content = theFile.read()
+        bwdata = xmltodict.parse(xml_content, encoding='utf-8')
+        headerData = bwdata['PurchaseOrderMessage']['PurchaseOrder']['POHeader']
+        POlinedata = bwdata['PurchaseOrderMessage']['PurchaseOrder']['POLine']
+        currPONumber = getCurrPONum(headerData)
+        if type(POlinedata) == dict:
+            currExtendedPrice = getPOCurrCommitItemAmnt(POlinedata)
+            currUnitQuantity = float(getCurrItemQuantity(POlinedata))
+            currUnitPrice = float(getPOCurrUnitPrice(POlinedata))
             if currExtendedPrice == 'Field Not Found in XML':
                 currTotalPrice = currUnitPrice * currUnitQuantity
             else:
                 currTotalPrice = float(currExtendedPrice)
-            currShippingCharges = float(getShippingCharges(k))
-            currHandlingCharges = float(getHandlingCharges(k))
-            currTax1 = float(getTax1(k))
-            currTax2 = float(getTax2(k))
+            currShippingCharges = float(getShippingCharges(POlinedata))
+            currHandlingCharges = float(getHandlingCharges(POlinedata))
+            currTax1 = float(getTax1(POlinedata))
+            currTax2 = float(getTax2(POlinedata))
             currOtherCharges = currShippingCharges + currHandlingCharges + currTax1 +currTax2
-            currLineTotalCost = currTotalPrice + currOtherCharges
-            #BWPOs[currPONumber] = currLineTotalCost
-            # print(getPOCurrValue(k))
-            currTotalCost += float(currLineTotalCost)
+            currTotalCost = currTotalPrice + currOtherCharges
             currTotalCost = float('{:.2f}'.format(float(currTotalCost)))
-        BWPOs[currPONumber] = currTotalCost
-    # print(currPONumber, ',', currItemCost)
-BWPOs = dict(sorted(BWPOs.items()))
-
-# ## Check Corresponding Costs in Ebuilder and Buyways
-
-count = 0
-ChangedPOs = {}
-print('PONumber   - Ebuilder - Buyways XML')
-for i in ebPOs:
-    if i in BWPOs:
-        BWPOs[i] = float('{:.2f}'.format(float(BWPOs[i])))
-        #print(i, '-' ,ebPOs[i], '-' ,BWPOs[i])
-        if BWPOs[i] == ebPOs[i]:
-            count+=1
+            BWPOs[currPONumber] = currTotalCost
         else:
-            print(i, '-' ,ebPOs[i], '-' ,BWPOs[i])
-            ChangedPOs[i] = BWPOs[i]
-            #count+=1
-# ChangedPOs
-CPO_FMPs = {}
-for i in ChangedPOs:
-    CPO_FMPs[i] = activePOs[i]['FMP'].decode('utf-8')
-#CPO_FMPs
+            currTotalCost = 0
+            for k in POlinedata:
+                currExtendedPrice = getPOCurrCommitItemAmnt(k)
+                currUnitQuantity = float(getCurrItemQuantity(k))
+                currUnitPrice = float(getPOCurrUnitPrice(k))
+                if currExtendedPrice == 'Field Not Found in XML':
+                    currTotalPrice = currUnitPrice * currUnitQuantity
+                else:
+                    currTotalPrice = float(currExtendedPrice)
+                currShippingCharges = float(getShippingCharges(k))
+                currHandlingCharges = float(getHandlingCharges(k))
+                currTax1 = float(getTax1(k))
+                currTax2 = float(getTax2(k))
+                currOtherCharges = currShippingCharges + currHandlingCharges + currTax1 +currTax2
+                currLineTotalCost = currTotalPrice + currOtherCharges
+                currTotalCost += float(currLineTotalCost)
+                currTotalCost = float('{:.2f}'.format(float(currTotalCost)))
+            BWPOs[currPONumber] = currTotalCost
+    BWPOs = dict(sorted(BWPOs.items()))
 
-changeOrderRecords = pd.DataFrame()
-for i in ChangedPOs:
-    # PCOData = getPCOData(i)
-    COData = getCOData(i)
-    # changeOrderRecords = dataToDF(PCOData,changeOrderRecords)
-    changeOrderRecords = dataToDF(COData,changeOrderRecords)
-for i in CPO_FMPs:
-    # print(i)
-    CONData = getCONData(CPO_FMPs[i],ChangedPOs)
-    changeOrderRecords = dataToDF(CONData,changeOrderRecords)
+    count = 0
+    ChangedPOs = {}
+    print('PONumber   - Ebuilder - Buyways XML')
+    for i in ebPOs:
+        if i in BWPOs:
+            BWPOs[i] = float('{:.2f}'.format(float(BWPOs[i])))
+            if BWPOs[i] == ebPOs[i]:
+                count+=1
+            else:
+                print(i, '-' ,ebPOs[i], '-' ,BWPOs[i])
+                ChangedPOs[i] = BWPOs[i]
 
-print(changeOrderRecords)
-CO_PWB = changeOrderRecords[changeOrderRecords['Step Name'] == 'Pending Buyways Approval']
-print(CO_PWB)
-# currTime = web.tstamper()
+    CPO_FMPs = {}
+    for i in ChangedPOs:
+        CPO_FMPs[i] = activePOs[i]['FMP'].decode('utf-8')
 
-COTableData = changeOrderRecords.to_html(index=False)
-CO_PWBTableData = CO_PWB.to_html(index = False)
-twoTables = "<h3>Commitment Change Orders - Pending Buyways Approval</h3>" + CO_PWBTableData
-twoTables += "<br><hr><h3>Other Commitment Change Orders</h3>" + COTableData + "<hr>"
+    changeOrderRecords = pd.DataFrame()
+    for i in ChangedPOs:
+        COData = getCOData(i)
+        changeOrderRecords = dataToDF(COData,changeOrderRecords)
+    for i in CPO_FMPs:
+        CONData = getCONData(CPO_FMPs[i],ChangedPOs)
+        changeOrderRecords = dataToDF(CONData,changeOrderRecords)
 
-head = makeHTMLHead()
-style = makeHTMLStyle()
-body = makeHTMLbody(twoTables)
-htmlData = head + style + body
+    print(changeOrderRecords)
+    CO_PWB = changeOrderRecords[changeOrderRecords['Step Name'] == 'Pending Buyways Approval']
+    print(CO_PWB)
 
-oDir = 'outputfiles\\'
-getHTML(oDir,htmlData)
+    COTableData = changeOrderRecords.to_html(index=False)
+    CO_PWBTableData = CO_PWB.to_html(index = False)
+    twoTables = "<h3>Commitment Change Orders - Pending Buyways Approval</h3>" + CO_PWBTableData
+    twoTables += "<br><hr><h3>Other Commitment Change Orders</h3>" + COTableData + "<hr>"
+
+    head = makeHTMLHead()
+    style = makeHTMLStyle()
+    body = makeHTMLbody(twoTables)
+    htmlData = head + style + body
+
+    oDir = 'outputfiles\\'
+    getHTML(oDir,htmlData)
+
+if __name__ == "__main__":
+    main()
 
 # get_ipython().system('jupyter nbconvert --to script commitmentChangeOrders.ipynb')

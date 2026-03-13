@@ -1,0 +1,9 @@
+chardet
+lxml
+mysql-connector-python
+oauth2
+openpyxl
+pandas
+pyodbc
+requests
+xmltodict

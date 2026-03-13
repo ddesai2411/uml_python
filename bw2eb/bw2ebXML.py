@@ -1,6 +1,6 @@
-import uml_python.uml_lib.ebAPI_lib as eb
-import uml_python.eb.ebPO.POCostXMLtoExcelExport as POXML
-import uml_python.eb.ebInv.InvoiceCostXMLtoExcelExport as InvXML
+import uml_lib.ebAPI_lib as eb
+import eb.ebPO.POCostXMLtoExcelExport as POXML
+import eb.ebInv.InvoiceCostXMLtoExcelExport as InvXML
 
 # print(files)
 

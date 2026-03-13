@@ -1,14 +1,12 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import uml_python.uml_lib.ebAPI_lib as eb
+import uml_lib.ebAPI_lib as eb
 import json
 
 def main():
 
-    #dir = '/Users/kysgattu/FIS/ebData/'
-    dir = "B:\\ebData\\"
-    # dir = "C:\\FISpython\\ebData\\"
+    cache_dir = eb.get_cache_dir(create=True)
     totalAPIcalls = 9
     retStr = ''
 
@@ -22,8 +20,8 @@ def main():
             print("API Limit Reached, Retrying! Do Not Terminate the process")
             pass
 
-    module_file = dir + 'Projects.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'Projects.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(projects_data, file)
     retStr+=f"Projects Saved at {module_file} \n"
 
@@ -37,8 +35,8 @@ def main():
             print("API Limit Reached, Retrying! Do Not Terminate the process")
             pass
 
-    module_file = dir + 'ActiveProjects.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'ActiveProjects.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(active_projects_data, file)
     retStr += f"Active Projects Saved at {module_file} \n"
 
@@ -54,8 +52,8 @@ def main():
             pass
 
 
-    module_file = dir + 'Budgets.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'Budgets.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(budgets_data, file)
 
     retStr += f"Budgets Saved at {module_file} \n"
@@ -72,8 +70,8 @@ def main():
             print("API Limit Reached, Retrying! Do Not Terminate the process")
             pass
 
-    module_file = dir + 'Commitments.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'Commitments.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(commitments_data, file)
     retStr += f"Commitments Saved at {module_file} \n"
 
@@ -90,8 +88,8 @@ def main():
             pass
 
 
-    module_file = dir + 'Invoices.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'Invoices.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(invoices_data, file)
     retStr += f"Invoices Saved at {module_file} \n"
 
@@ -107,8 +105,8 @@ def main():
             print("API Limit Reached, Retrying! Do Not Terminate the process")
             pass
 
-    module_file = dir + 'FundingRules.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'FundingRules.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(fundingRules_data, file)
     retStr += f"Funding Rules Saved at {module_file} \n"
 
@@ -123,8 +121,8 @@ def main():
             print("API Limit Reached, Retrying! Do Not Terminate the process")
             pass
 
-    module_file = dir + 'Companies.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'Companies.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(companies_data, file)
     retStr += f"Companies Saved at {module_file} \n"
 
@@ -139,8 +137,8 @@ def main():
             print("API Limit Reached, Retrying! Do Not Terminate the process")
             pass
 
-    module_file = dir + 'CommitmentItems.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'CommitmentItems.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(commitmentItems_data, file)
     retStr += f"Commitment Items Saved at {module_file} \n"
 
@@ -155,16 +153,16 @@ def main():
             print("API Limit Reached, Retrying! Do Not Terminate the process")
             pass
 
-    module_file = dir + 'FundingSources.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'FundingSources.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(fundingSources_data, file)
     retStr += f"Funding Sources Saved at {module_file} \n"
 
 
     POREQ_data = eb.getPOREQData()
 
-    module_file = dir + 'POREQ.json'
-    with open(module_file, 'w') as file:
+    module_file = cache_dir / 'POREQ.json'
+    with module_file.open('w', encoding='utf-8') as file:
         json.dump(POREQ_data, file)
 
     retStr += f"POREQs Data Saved at {module_file} \n"

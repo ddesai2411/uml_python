@@ -1,9 +1,9 @@
 import glob,os,shutil
 import zipfile
 
-import uml_python.bw2eb.bw2eb as bw2eb
-import uml_python.uml_lib.ebCostLib as ebCost
-import uml_python.uml_lib.web_lib as UMLweb
+import bw2eb.bw2eb as bw2eb
+import uml_lib.ebCostLib as ebCost
+import uml_lib.web_lib as UMLweb
 
 # Purpose: Get the Buyways Reports in the form of "ZIP" files in the directory.
 # Extract the Zip Files to get the .CSV Reports

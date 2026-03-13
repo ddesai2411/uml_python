@@ -3,8 +3,8 @@
 
 import os
 import pyodbc
-import uml_python.uml_lib.ebAPI_lib as eb
-import uml_python.uml_lib.ebSQLlib as ebSQL
+import uml_lib.ebAPI_lib as eb
+import uml_lib.ebSQLlib as ebSQL
 import mysql.connector
 from mysql.connector import Error
 
