@@ -16,7 +16,6 @@ import uml_python.uml_lib.ebAPI_lib as ebAPI
 
 
 def debugPrint(theStr):
-    #print "Debug print:", theStr
     ignoreThis = 0
 
 """
