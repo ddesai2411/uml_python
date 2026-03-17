@@ -1,9 +1,0 @@
-{
-  "hostname": "https://your-ebuilder-host",
-  "username": "your-username",
-  "password": "your-password",
-  "data_cache_dir": "C:\\git\\UMASS\\uml_python\\data\\ebData",
-  "daily_imports_dir": "C:\\git\\UMASS\\uml_python\\data\\dailyImports",
-  "from_bw_dir": "C:\\git\\UMASS\\uml_python\\data\\fromBW",
-  "fmp_output_file": "C:\\git\\UMASS\\uml_python\\output\\ebFMP.html"
-}
