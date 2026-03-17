@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # coding: utf-8
 import xmltodict, glob
-from uml_python.uml_lib import ebAPI_lib as eb
-from uml_python.uml_lib import web_lib as UMLweb
-from uml_python.uml_lib import ebCostLib as ebCost
+from uml_lib import ebAPI_lib as eb
+from uml_lib import web_lib as UMLweb
+from uml_lib import ebCostLib as ebCost
 #import ebAPI_lib_v2 as eb
 from datetime import datetime
 from openpyxl import Workbook
@@ -821,6 +821,7 @@ PAYAPxlHeaders = {1: "FMP Number",
                   3: "Commitment Number"}
 
 def main():
+    initialize_reference_data()
     #theDir = "/Users/kysgattu/FIS/BDrive/fromBW/2process/PROCESSED/"
     # theDir = "fromBW16May/"
     theDir = "B:\\fromBW\\2process\\"
@@ -843,13 +844,24 @@ def main():
     print("Invoice processing complete", Invoice_Report)
     return Invoice_Report
 
-fundRules = eb.get_FundingRules()
-ebProjs = eb.get_Projects()
-activePOs = eb.get_activePOs(ebProjs)
-ebInvoices = eb.get_Invoices()
-
+fundRules = {}
+ebProjs = {}
+activePOs = {}
+ebInvoices = []
 vendorTypes = {}
-build_commitTypes(activePOs)
+
+def initialize_reference_data():
+    global fundRules, ebProjs, activePOs, ebInvoices, vendorTypes
+
+    if activePOs and ebInvoices:
+        return
+
+    fundRules = eb.get_FundingRules()
+    ebProjs = eb.get_Projects()
+    activePOs = eb.get_activePOs(ebProjs)
+    ebInvoices = eb.get_Invoices()
+    vendorTypes = {}
+    build_commitTypes(activePOs)
 
 if __name__ == "__main__":
     main()

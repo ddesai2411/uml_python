@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
-from uml_lib import ebAPI_lib as eb
+import uml_lib.ebAPI_lib as eb
 from datetime import datetime
 
 #Code WorkFlow -
@@ -120,7 +120,7 @@ def getMoStatData(projectName):
                 #print (">>>>", currPhase, currPhase[:2])
                 ignoreCounts += 1
                 if currPhase[:2] == "08" or currPhase[:3] == "07A":
-                     ignoreThis = 1
+                    ignoreThis = 1
                     ignoreCounts += 1
                     #print ("Undefined lead", currFMP, currProjName, currLeadDept, currPM, currPlanner)
                     #print "Not 08, 07A", currPhase
@@ -237,9 +237,11 @@ def getMoStatData(projectName):
     return data
     #return moStatDict
 
-#data = getMoStatData('zzTEST Integration')
-data = getMoStatData('*TEST - PGB Test')
-theURL = 'https://api2.e-builder.net/api/v2/noncostprocesses/import'
+def main():
+    data = getMoStatData('*TEST - PGB Test')
+    theURL = 'https://api2.e-builder.net/api/v2/noncostprocesses/import'
+    eb.postTOAPI(theURL,data)
 
-eb.postTOAPI(theURL,data)
+if __name__ == "__main__":
+    main()
 

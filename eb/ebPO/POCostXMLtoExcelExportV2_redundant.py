@@ -2,9 +2,9 @@
 # coding: utf-8
 
 import xmltodict, glob
-from uml_python.uml_lib import ebAPI_lib as eb
-from uml_python.uml_lib import ebCostLib as ebCost
-from uml_python.uml_lib import web_lib as UMLweb
+from uml_lib import ebAPI_lib as eb
+from uml_lib import ebCostLib as ebCost
+from uml_lib import web_lib as UMLweb
 # import ebAPI_lib_v2 as eb
 from datetime import datetime
 from openpyxl import Workbook
@@ -945,6 +945,7 @@ xlHeaders = {1: "Commitment Number",
              }
 
 def main():
+    initialize_reference_data()
     # theDir = "DataFiles/testdata/"
     # theDir = "CostXML_IP_OP/fromBW/"
     # theDir = "B:\\fromBW\\"
@@ -966,12 +967,22 @@ def main():
     # moveProcessedFiles(theDir,processed_Dir)
     return PO_Report
 
-fundRules = eb.get_FundingRules()
-ebProjs = eb.get_Projects()
-activePOs = eb.get_activePOs(ebProjs)
-
+fundRules = {}
+ebProjs = {}
+activePOs = {}
 vendorTypes = {}
-build_commitTypes(activePOs)
+
+def initialize_reference_data():
+    global fundRules, ebProjs, activePOs, vendorTypes
+
+    if activePOs:
+        return
+
+    fundRules = eb.get_FundingRules()
+    ebProjs = eb.get_Projects()
+    activePOs = eb.get_activePOs(ebProjs)
+    vendorTypes = {}
+    build_commitTypes(activePOs)
 
 if __name__ == "__main__":
     main()

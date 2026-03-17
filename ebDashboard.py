@@ -4,14 +4,14 @@ from tkinter import messagebox as mb
 from tkinter import filedialog as filedialog
 from tkinter import Tk, Label, Button
 from tkinter import ttk
-import uml_python.uml_lib.ebAPI_lib as eb
-import uml_python.moStat as moStat
-import uml_python.ebTimeAlloc as timeAlloc
-import uml_python.ebFMP as ebFMP
-import uml_python.bw2eb.bw2eb as bw2eb
-import uml_python.bw2eb.bw2ebXML as bw2ebXML
-import uml_python.bw2eb.bw2ebJoined as bw2ebJoined
-import uml_python.uml_lib.dailyDataImport as ebData
+import uml_lib.ebAPI_lib as eb
+import moStat
+import ebTimeAlloc as timeAlloc
+import ebFMP as ebFMP
+import bw2eb.bw2eb as bw2eb
+import bw2eb.bw2ebXML as bw2ebXML
+import bw2eb.bw2ebJoined as bw2ebJoined
+import uml_lib.dailyDataImport as ebData
 
 import os
 import datetime
@@ -57,6 +57,18 @@ def get_latest_modified_time(directory_path, extension='.json'):
     # print(f"\nThe latest modification time is: {latest_modified_date}")
     return latest_modified_date.strftime("%Y-%b-%d %H:%M:%S")
 
+
+def get_eb_data_status_text():
+    try:
+        latest_modified_time = get_latest_modified_time(eb.get_cache_dir())
+    except Exception as e:
+        return f"EB Data cache unavailable:\n{e}"
+
+    if latest_modified_time is None:
+        return "EB Data cache configured, but no JSON files were found yet."
+
+    return "EB Data last Imported on:" + latest_modified_time
+
 def run_bw2eb():
     global supportFile, CSVfile
     # clear results, in case we already ran
@@ -92,8 +104,12 @@ def run_ebFMP():
     lbl_ebFMPresults.config(text="Complete. HTMl file in "+ res)
 
 def run_ebData():
-    res = ebData.main()
-    lbl_ebDataresults.config(text=res+"\nEB Data last Imported on:" + get_latest_modified_time("B:\\ebData\\"))
+    try:
+        res = ebData.main()
+        lbl_ebDataresults.config(text=res + "\n" + get_eb_data_status_text())
+    except Exception as e:
+        mb.showerror(title="ebData", message=str(e))
+        lbl_ebDataresults.config(text="ebData failed:\n" + str(e) + "\n\n" + get_eb_data_status_text())
 
 def run_bw2ebJoined():
     res = bw2ebJoined.main()
@@ -195,7 +211,7 @@ frame_ebData.grid(column=1, row=1, padx=xdPad, pady=fypad*5, sticky=tk.W)
 btn_ebData = ttk.Button(frame_ebData, text="Run ebData", command=run_ebData, width=dWidth)
 btn_ebData.grid(column=1, row=2, padx=xdPad, pady=ydPad, sticky=tk.W)
 
-lbl_ebDataresults = ttk.Label(frame_ebData, text="EB Data last Imported on:" + get_latest_modified_time("B:\\ebData\\") + "\neb Data Results:\n...", anchor="w")
+lbl_ebDataresults = ttk.Label(frame_ebData, text=get_eb_data_status_text() + "\neb Data Results:\n...", anchor="w")
 lbl_ebDataresults.grid(column=1, row=3, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
 
 

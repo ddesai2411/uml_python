@@ -1,4 +1,4 @@
-import ebAPI_lib as eb
+import uml_lib.ebAPI_lib as eb
 import json
 
 dir = "B:\\ebData\\"

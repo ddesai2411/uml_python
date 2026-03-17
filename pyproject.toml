@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "uml-python"
+version = "0.1.0"
+description = "Internal e-Builder and Buyways automation utilities"
+requires-python = ">=3.9"
+dependencies = [
+    "chardet",
+    "lxml",
+    "mysql-connector-python",
+    "oauth2",
+    "openpyxl",
+    "pandas",
+    "pyodbc",
+    "requests",
+    "xmltodict",
+]
+
+[tool.setuptools.packages.find]
+include = [
+    "bw2eb*",
+    "CommitmentChangeOrders*",
+    "eb*",
+    "ebDataToSQL*",
+    "uml_lib*",
+    "workorder*",
+]

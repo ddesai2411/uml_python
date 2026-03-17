@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os
-import csv, datetime
 import json
-import requests
+from pathlib import Path
+from urllib.parse import urlencode
+from typing import Optional
+from uml_lib.ebAPI_config import eBuilderConfig, load_config, resolve_config_path
 import concurrent.futures
-
+from typing import Any
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+from uml_lib.ebAPI_tokenresponse import eBuilderTokenResponse
+from uml_lib.ebAPI_response import ebResponse, ResponseMeta
 
 # """
 # ebAPI_lib v2.0
@@ -67,58 +72,290 @@ import concurrent.futures
 #
 # # Connection to the API
 
-class BearerAuth(requests.auth.AuthBase):
-    def __init__(self, token):
-        self.token = token
+_APIToken: Optional[eBuilderTokenResponse] = None
+_APIConfig: Optional[eBuilderConfig] = None
 
-    def __call__(self, r):
-        r.headers["authorization"] = "Bearer " + self.token
-        return r
+def get_config() -> eBuilderConfig:
+    global _APIConfig
 
-def get_ebToken():
-    payload = {
-        'grant_type': 'password',
-        'username': "ebuilder@uml.edu",
-        'password': "4fe917fe108c443c8eb374e15548f70f"
+    if _APIConfig is not None:
+        return _APIConfig
+
+    _APIConfig = load_config(Path("config.ebuilder.json"))
+
+    return _APIConfig
+
+
+def get_cache_dir(create: bool = False) -> Path:
+    cfg = get_config()
+    cache_dir = resolve_config_path(cfg.data_cache_dir, "data_cache_dir")
+
+    if create:
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        return cache_dir
+
+    if not cache_dir.exists():
+        raise FileNotFoundError(
+            f"Configured data cache directory does not exist: {cache_dir}. "
+            "Update 'data_cache_dir' in config.ebuilder.json or create the folder first."
+        )
+    if not cache_dir.is_dir():
+        raise NotADirectoryError(f"Configured data cache path is not a directory: {cache_dir}")
+
+    return cache_dir
+
+
+def get_fmp_output_file() -> Path:
+    cfg = get_config()
+    output_file = resolve_config_path(cfg.fmp_output_file, "fmp_output_file")
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    return output_file
+
+def get_ebToken(timeout: float = 30.0) -> eBuilderTokenResponse:
+    global _APIToken
+
+    if _APIToken is not None:
+        return _APIToken
+
+    cfg = get_config()
+    url = cfg.hostname + "/api/v2/authenticate"
+
+    form = {
+        "grant_type": "password",
+        "username": cfg.username,
+        "password": cfg.password,
     }
 
-    r = requests.post("https://api2.e-builder.net/api/v2/authenticate",
-                      headers={"Content-Type": "application/x-www-form-urlencoded"},
-                      data=payload)
+    data = urlencode(form).encode("utf-8")
+    req = Request(url, data=data, method="POST")
+    req.add_header("Content-Type", "application/x-www-form-urlencoded")
 
-    reqDict = json.loads(r.content)
-    ebTok = reqDict["access_token"]
-    return ebTok
+    try:
+        with urlopen(req, timeout=timeout) as resp:
+            charset = resp.headers.get_content_charset() or "utf-8"
+            text = resp.read().decode(charset)
+    except HTTPError as e:
+        # Optionally read error body for debugging
+        try:
+            body = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            body = ""
+        raise HTTPError(e.url, e.code, f"{e.reason}. Response body: {body}", e.headers, e.fp)
+    except URLError:
+        raise
 
-ebTok = get_ebToken()
-#print (ebTok)
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Expected JSON response, got: {text[:200]}") from e
 
-def APIconnect(module):
-    print("Connecting to the API to get " + module)
-    modStr = "https://api2.e-builder.net/api/v2/" + module + "?$format=json"
-    print(modStr)
-    #ebTok = get_ebToken()
-    response = requests.get(modStr, auth = BearerAuth(ebTok))
-    mystr = response.content
-    data =  json.loads(mystr)
-    return data #this data is not in the same format as the data in old api, modifications are needed to be done which are defined in the module specific methods.
+    if not isinstance(payload, dict):
+        raise ValueError("Expected JSON object at top level in token response")
 
-#def getFromAPI(URL):
+    _APIToken = eBuilderTokenResponse.from_dict(payload)
+    return _APIToken
+
+def get_request(url: str, timeout: float = 30.0) -> str:
+    """
+    Perform a single GET request with auth + JSON headers and return decoded text.
+    Adds the response body to HTTPError for easier troubleshooting.
+    """
+    token = get_ebToken()
+    req = Request(url, method="GET")
+    req.add_header("Authorization", f"Bearer {token.access_token}")
+    req.add_header("Accept", "application/json")
+    try:
+        # Open the URL with timeout and decode using server-provided charset (default utf-8).
+        with urlopen(req, timeout=timeout) as resp:
+            charset = resp.headers.get_content_charset() or "utf-8"
+            return resp.read().decode(charset)
+    except HTTPError as e:
+        # If the server returns an error status, try to include its body in the exception.
+        try:
+            body = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            body = ""
+        # Re-raise HTTPError with an augmented message that includes the body preview.
+        raise HTTPError(e.url, e.code, f"{e.reason}. Response body: {body}", e.headers, e.fp)
+    except URLError:
+        # Propagate connection/transport errors as-is for the caller to handle.
+        raise
 
 
-def postTOAPI(URL, data):
-    response = requests.post(URL, json = data, auth=BearerAuth(ebTok))
-    #print(response.content)
-    myStr = response.content
-    data = json.loads(myStr)
-    if 'records' not in data:
-        return data #myStr
+def APIconnect(module: str, timeout: float = 30.0) -> ebResponse:
+    cfg = get_config()
 
-        #print('Data Import Failed!')
+    # Build the base URL. `?$format=json` requests JSON output; pagination params get appended later.
+    base_url = cfg.hostname + f"/api/v2/{module}?$format=json"
 
+    # Fetch the first page.
+    text = get_request(base_url)
+
+    # Parse the response as JSON, including a helpful preview on parse failure.
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError as e:
+        preview = text[:200] if isinstance(text, str) else ""
+        raise ValueError(f"Response was not valid JSON (first 200 chars): {preview}") from e
+
+    # Top-level must be an object (dict), not an array or primitive.
+    if not isinstance(payload, dict):
+        raise ValueError("Expected top-level JSON object")
+
+    # Extract expected top-level fields (some may be optional depending on endpoint).
+    query = payload.get("query")
+    meta = payload.get("meta")
+    records = payload.get("records")
+
+    # Normalize query to a string; fallback to the module name if it's missing/non-string.
+    if not isinstance(query, str):
+        query = str(module)
+
+    # Validate presence/type of the meta object.
+    if not isinstance(meta, dict):
+        raise ValueError("Expected 'meta' to be an object")
+
+    # Ensure required meta keys exist.
+    required_meta_keys = ("href", "offset", "limit", "size", "totalRecords")
+    missing_meta = [k for k in required_meta_keys if k not in meta]
+    if missing_meta:
+        raise ValueError(f"Missing meta keys: {', '.join(missing_meta)}")
+
+    # Parse and type-check meta fields, raising ValueError with the original exception chained.
+    try:
+        current_offset = int(meta["offset"])
+        limit = int(meta["limit"])
+        size = int(meta["size"])
+        total_records = int(meta["totalRecords"])
+        href = str(meta["href"])
+    except Exception as e:
+        raise ValueError(f"Invalid 'meta' field types: {e}") from e
+
+    # The 'records' field may be:
+    #   - None: no data yet (treat as empty list)
+    #   - list: standard list of records (typical for paginated collections)
+    #   - other (e.g., dict): a single object response; return early in that case
+    if records is None:
+        all_records = []
+    elif isinstance(records, list):
+        # Copy to avoid mutating the original list from the parsed payload.
+        all_records = list(records)
     else:
-        print("Data imported Successfully!!!")
-        return data
+        # Single-object response: construct meta and return immediately.
+        meta_obj = ResponseMeta(
+            href=href,
+            offset=current_offset,
+            limit=limit,
+            size=size,
+            totalRecords=total_records,
+        )
+        return ebResponse(query=query, meta=meta_obj, records=records)
+
+    # Auto-pagination loop: continue requesting pages until we've collected all records.
+    while total_records > len(all_records):
+        # Compute next offset; guard against non-progressing offsets (to avoid infinite loops).
+        next_offset = current_offset + limit
+        if next_offset <= current_offset:
+            break  # Safety guard: something is wrong with pagination numbers.
+
+        # If we've already pulled 'size' records and totalRecords == size, there's nothing more.
+        if len(all_records) >= size and total_records == size:
+            break  # Nothing more to fetch
+
+        # Request next page by appending &offset.
+        page_url = f"{base_url}&offset={next_offset}"
+        page_text = get_request(page_url)
+
+        # Parse the subsequent page; include preview on parse failure.
+        try:
+            page_payload = json.loads(page_text)
+        except json.JSONDecodeError as e:
+            preview = page_text[:200] if isinstance(page_text, str) else ""
+            raise ValueError(f"Subsequent page was not valid JSON (first 200 chars): {preview}") from e
+
+        if not isinstance(page_payload, dict):
+            raise ValueError("Expected top-level JSON object for subsequent page")
+
+        # Extract meta and records for the page; meta may adjust iteration variables.
+        page_meta = page_payload.get("meta")
+        page_records = page_payload.get("records")
+
+        if isinstance(page_meta, dict):
+            try:
+                # Use page-provided values when present; otherwise fall back to prior ones.
+                page_offset = int(page_meta.get("offset", next_offset))
+                page_limit = int(page_meta.get("limit", limit))
+                page_size = int(page_meta.get("size", 0))
+
+                # Update iteration state with the page's meta.
+                current_offset = page_offset
+                limit = page_limit
+                size = page_size  # size of the last fetched page
+                href = str(page_meta.get("href", href))
+
+                # totalRecords should be stable across pages; if provided, keep it consistent.
+                pr_total = page_meta.get("totalRecords")
+                if pr_total is not None:
+                    total_records = int(pr_total)
+            except Exception as e:
+                raise ValueError(f"Invalid 'meta' field types on subsequent page: {e}") from e
+        else:
+            # If no meta present, at least advance our offset based on what we requested.
+            current_offset = next_offset
+
+        # Handle no/empty records cases and enforce list type for subsequent pages.
+        if page_records is None:
+            break  # No more data available from the server.
+        if not isinstance(page_records, list):
+            raise ValueError("Expected 'records' to be a list on subsequent page")
+        if not page_records:
+            break  # Empty page -> stop.
+
+        # Accumulate records and stop if we've reached the advertised total.
+        all_records.extend(page_records)
+        if len(all_records) >= total_records:
+            break
+
+    # Build final meta reflecting the aggregation we performed.
+    final_meta = ResponseMeta(
+        href=href,
+        offset=current_offset,
+        limit=limit,
+        size=len(all_records),  # number of records actually aggregated
+        totalRecords=total_records,
+    )
+
+    # Return the structured response with the full dataset.
+    return ebResponse(query=query, meta=final_meta, records=all_records)
+
+def postTOAPI(URL, data, timeout: float = 30.0) -> Any:
+    token = get_ebToken()
+
+    req = Request(URL, method="POST", data=data.encode("utf-8"))
+    req.add_header("Authorization", f"Bearer {token.access_token}")
+    req.add_header("Accept", "application/json")
+    req.add_header("Content-Type", "application/json")
+
+    try:
+        with urlopen(req, timeout=timeout) as resp:
+            charset = resp.headers.get_content_charset() or "utf-8"
+            response = resp.read().decode(charset)
+            data = json.loads(response)
+            if 'records' not in data:
+                print ('Data Import Failed!')
+            else:
+                print("Data imported Successfully!!!")
+
+            return data
+    except HTTPError as e:
+        # Optionally read error body for debugging
+        try:
+            body = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            body = ""
+        raise HTTPError(e.url, e.code, f"{e.reason}. Response body: {body}", e.headers, e.fp)
+    except URLError:
+        raise
 
 # # Projects
 
@@ -151,10 +388,12 @@ def write_FMP(proj_data):
     #ofile.close()
 
 def get_project_data(record):
+    cfg = get_config()
+
     project_id = record["projectId"]
-    theURL = "https://api2.e-builder.net/api/v2/Projects/" + project_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+    theURL = cfg.hostname + "/api/v2/Projects/" + project_id + "/customfields"
+    response = get_request(theURL)
+    custom_fields_raw = json.loads(response)
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -163,7 +402,8 @@ def get_project_data(record):
     return project_data
 
 def get_project_allData():
-    records = APIconnect("Projects")['records']
+    response = APIconnect("Projects")
+    records = response.records
     project_all_data = []
     i = 0
     while i < len(records):
@@ -177,7 +417,7 @@ def get_project_allData():
     return project_all_data
 
 def get_active_project_all_data():
-    records = APIconnect("Projects")['records']
+    records = APIconnect("Projects").records
     active_records = [record for record in records if record['status'] in ["Active", "TD Active"]]
     active_project_all_data = []
     i = 0
@@ -248,10 +488,17 @@ def get_FMP_from_EB_projID(i, ebProjs):
 # # Budgets
 
 def get_budget_data(record):
+    cfg = get_config()
+
     budget_id = record["budgetId"]
-    theURL = "https://api2.e-builder.net/api/v2/Budgets/" + budget_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+#    theURL = "https://api2.e-builder.net/api/v2/Budgets/" + budget_id + "/customfields"
+#    response = requests.get(theURL, auth=BearerAuth(ebTok))
+
+    theURL = cfg.hostname + "/api/v2/Budgets/" + budget_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -259,9 +506,8 @@ def get_budget_data(record):
     budget_data = record | dict_custom_fields_details
     return budget_data
 
-
 def get_budget_all_data():
-    records = APIconnect("Budgets")['records']
+    records = APIconnect("Budgets").records
     budget_all_data = []
     i = 0
     while i < len(records):
@@ -295,10 +541,19 @@ def get_Budgets():
 # # Commitments
 
 def get_commitment_data(record):
+
+    cfg = get_config()
+
     commitment_id = record["commitmentID"]
-    theURL = "https://api2.e-builder.net/api/v2/Commitments/" + commitment_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+   #theURL = "https://api2.e-builder.net/api/v2/Commitments/" + commitment_id + "/customfields"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+
+    theURL = cfg.hostname + "/api/v2/Commitments/" + commitment_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
+
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -307,7 +562,7 @@ def get_commitment_data(record):
     return commitment_data
 
 def get_commitment_all_data():
-    records = APIconnect("Commitments")['records']
+    records = APIconnect("Commitments").records
     commitment_all_data = []
     i = 0
     while i < len(records):
@@ -462,15 +717,23 @@ def build_commitTypes(activePOs):
 
 
 def get_commitmentItems_data(record):
+    cfg = get_config()
+
     commitment_id = record['commitmentID']
-    theURL = "https://api2.e-builder.net/api/v2/Commitments/" + commitment_id + "/items"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    item_data_raw = json.loads(response.content)
+
+    #theURL = "https://api2.e-builder.net/api/v2/Commitments/" + commitment_id + "/items"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+    theURL = cfg.hostname + "/api/v2/Commitments/" + commitment_id + "/items"
+    response = get_request(theURL)
+
+    #item_data_raw = json.loads(response.content)
+    item_data_raw = json.loads(response)
+
     item_data_details = item_data_raw['details']
     return item_data_details
 
 def get_commitmentItems_allData():
-    records = APIconnect("Commitments")['records']
+    records = APIconnect("Commitments").records
     commitmentItemdata = []
 
     i = 0
@@ -492,10 +755,18 @@ def get_commitmentItems_allData():
 # # Invoices
 
 def get_invoice_data(record):
+    cfg = get_config()
+
     invoice_id = record["invoiceId"]
-    theURL = "https://api2.e-builder.net/api/v2/commitmentinvoices/" + invoice_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+
+    #theURL = "https://api2.e-builder.net/api/v2/commitmentinvoices/" + invoice_id + "/customfields"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+    theURL = cfg.hostname + "/api/v2/commitmentinvoices/" + invoice_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
+
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -504,7 +775,7 @@ def get_invoice_data(record):
     return invoice_data
 
 def get_invoice_allData():
-    records = APIconnect("commitmentinvoices")['records']
+    records = APIconnect("commitmentinvoices").records
     invoice_all_data = []
     i = 0
     while i < len(records):
@@ -659,7 +930,7 @@ def getPOs_for_Invoices():
 
 def get_fundingRules_allData():
     # Funding Rules does not have any custom fields; hence the all the data can be pulled from records field of APIconnect
-    fundingRules_all_data = APIconnect("FundingRules")['records']
+    fundingRules_all_data = APIconnect("FundingRules").records
     return fundingRules_all_data
 #print(get_fundingRules_allData())
 
@@ -793,10 +1064,18 @@ def get_FundingRules_FMP():
 # # Companies
 
 def get_companies_data(record):
+    cfg = get_config()
+
     company_id = record["companyId"]
-    theURL = "https://api2.e-builder.net/api/v2/companies/" + company_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+    #theURL = "https://api2.e-builder.net/api/v2/companies/" + company_id + "/customfields"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+
+    theURL = cfg.hostname + "/api/v2/companies/" + company_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
+
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -805,7 +1084,7 @@ def get_companies_data(record):
     return company_data
 
 def get_companies_allData():
-    records = APIconnect("companies")['records']
+    records = APIconnect("companies").records
     company_all_data = []
     i = 0
     while i < len(records):
@@ -851,10 +1130,19 @@ def get_Companies_dict2():
 ## Funding Sources
 
 def get_fundingSources_data(record):
+    cfg = get_config()
+
     fundingSource_id = record["fundingSourceID"]
-    theURL = "https://api2.e-builder.net/api/v2/fundingSources/" + fundingSource_id + "/customfields"
-    response = requests.get(theURL, auth=BearerAuth(ebTok))
-    custom_fields_raw = json.loads(response.content)
+
+    #theURL = "https://api2.e-builder.net/api/v2/fundingSources/" + fundingSource_id + "/customfields"
+    #response = requests.get(theURL, auth=BearerAuth(ebTok))
+
+    theURL = cfg.hostname + "/api/v2/fundingSources/" + fundingSource_id + "/customfields"
+    response = get_request(theURL)
+
+    #custom_fields_raw = json.loads(response.content)
+    custom_fields_raw = json.loads(response)
+
     custom_fields_details = custom_fields_raw['details']
     dict_custom_fields_details = {}
     for j in range(len(custom_fields_details)):
@@ -863,7 +1151,7 @@ def get_fundingSources_data(record):
     return fundingSource_data
 
 def get_fundingSources_allData():
-    records = APIconnect("fundingSources")['records']
+    records = APIconnect("fundingSources").records
     fundingSource_all_data = []
     i = 0
     while i < len(records):
@@ -909,7 +1197,10 @@ def getPOREQDataNonCostProcess():
             },
         ],
     }
-    theURL = 'https://api2.e-builder.net/api/v2/noncostprocesses/query?processprefix=POREQ'
+    #theURL = 'https://api2.e-builder.net/api/v2/noncostprocesses/query?processprefix=POREQ'
+    cfg =  get_config()
+    theURL = cfg.hostname + "/api/v2/noncostprocesses/query?processprefix=POREQ"
+
     print('Getting POREQ data')
     POREQjson = postTOAPI(theURL, POREQdatafields)['records']
     return POREQjson
@@ -950,9 +1241,11 @@ def getPOREQData():
                 }
                ]
     }
-    theURL = 'https://api2.e-builder.net/api/v2/CommitmentProcesses/query?processprefix=POREQ'
+    #theURL = 'https://api2.e-builder.net/api/v2/CommitmentProcesses/query?processprefix=POREQ'
+    cfg =  get_config()
+    theURL = cfg.hostname + "/api/v2/CommitmentProcesses/query?processprefix=POREQ"
     print('Getting POREQ data')
-    POREQjson = postTOAPI(theURL, POREQdatafields)['records']
+    POREQjson = postTOAPI(theURL, json.dumps(POREQdatafields))['records']
     return POREQjson
 
 
@@ -960,10 +1253,13 @@ def getPOREQData():
 
 def getDataFromCache(module):
     # print("Getting ",module," data from Cache to reduce load on API. Run the commented lines instead to get fresh data")
-    #dir = '/Users/kysgattu/FIS/ebData/'
-    dir = "B:\\ebData\\"
-    file = dir + module + '.json'
-    with open(file, 'r') as f:
+    file = get_cache_dir() / f"{module}.json"
+    if not file.exists():
+        raise FileNotFoundError(
+            f"Cache file not found: {file}. Run ebData after configuring 'data_cache_dir' in config.ebuilder.json."
+        )
+
+    with file.open('r', encoding='utf-8') as f:
         module_data = json.loads(f.read())
     return module_data
 
@@ -977,5 +1273,3 @@ def getDataFromCache(module):
 #print(get_Companies_dict2())
 
 #get_ipython().system('jupyter nbconvert --to script ebAPI_lib.ipynb')
-
-

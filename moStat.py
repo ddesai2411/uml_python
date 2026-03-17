@@ -7,7 +7,7 @@ from datetime import datetime
 #import newebapi_proj as proj_data
 #import newebapi_budg as budg_data
 
-import uml_python.uml_lib.ebAPI_lib as ebAPI
+import uml_lib.ebAPI_lib as ebAPI
 
 def newliner(s):
     # replace eb output of /n/n with Excel-ready \n\n.
