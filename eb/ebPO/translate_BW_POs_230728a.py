@@ -1,5 +1,4 @@
 import csv, datetime, getpass
-import chardet
 """
 import ebCOST_newAPI.eb.ebCostLib as ebCost
 import ebCOST_newAPI.eb.ebPO.write_PO_Cost_line as wPOC
@@ -152,11 +151,7 @@ def translate_Buyways_POs(theCSV, currStamp):
 
     # NOTE: Noticed the encoding type of csv file is not same always,
     # so adding code to check encoding of the file before reading the rows Just in Case
-    with open(theCSV, 'rb') as f:
-        result = chardet.detect(f.read())
-        encodingFormat = result['encoding']
-
-    with open(theCSV,encoding=encodingFormat) as csvfile:
+    with ebCost.open_buyways_csv(theCSV) as csvfile:
         POdata = csv.DictReader(csvfile,delimiter=',') #quotecharacter?
         currPO = ""
         currPOvalueTotal = 0.0

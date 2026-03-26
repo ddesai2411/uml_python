@@ -190,6 +190,7 @@ Important notes:
 - the script currently computes a `processed` subfolder path under `fromBuyways_reports`, but the zip-move step is commented out, so zip files are currently left in place after extraction
 - the actual HTML summary output path comes from `daily_imports_dir`, even though there are a few leftover historical path variables in the older script
 - this workflow depends on the same downstream PO and invoice translators used by the single-file `Run bw2eb` button
+- Buyways CSV imports are normalized in memory before parsing, with a fallback from `utf-8-sig` to `cp1252`, so files with Windows-style smart quotes or soft hyphens do not fail during decode
 
 ### Run a single script directly
 

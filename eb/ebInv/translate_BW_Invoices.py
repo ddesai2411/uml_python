@@ -1,5 +1,4 @@
 import csv
-import chardet
 import uml_lib.ebHTML as ebHTML
 
 """
@@ -80,13 +79,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
               "nonEB":0,
               }
 
-    # NOTE: Noticed the encoding type of csv file is not same always,
-    # so adding code to check encoding of the file before reading the rows Just in Case
-    with open(theCSV, 'rb') as f:
-        result = chardet.detect(f.read())
-        encodingFormat = result['encoding']
-    print(encodingFormat)
-    with open(theCSV,encoding=encodingFormat) as csvfile:
+    with ebCost.open_buyways_csv(theCSV) as csvfile:
         InvData = csv.DictReader(csvfile,delimiter=',') #quotecharacter?
         errorLine = []
         errorST = []

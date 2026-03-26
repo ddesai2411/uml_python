@@ -1,4 +1,4 @@
-import csv, datetime, getpass, chardet
+import csv, datetime, getpass
 import uml_lib.ebCostLib as ebCost
 # Cost line - 230731 - working on FMP in description/simplifying code
 import eb.ebPO.write_PO_Cost_line as wPOC
@@ -84,11 +84,8 @@ def parse_POcsv(theCSV,currStamp):
     # EB lookup: Commitment Type
     # EB fields contstant/predetermined: Status, Retainage (0 or 5)
         
-    with open(theCSV, 'rb') as f:
-        result = chardet.detect(f.read())
-        encodingFormat = result['encoding']
     myCount = 0
-    with open(theCSV,encoding=encodingFormat) as csvfile:
+    with ebCost.open_buyways_csv(theCSV) as csvfile:
         POdata = csv.DictReader(csvfile,delimiter=',') #quotecharacter?
         counts = {"EBprocess": 0, "EBcostST": 0, "EBcostFMP": 0, "EBexists": 0, "EBexistsCO?": 0, "nonEB": 0}
         currPOvalueTotal = 0.0
