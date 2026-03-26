@@ -63,6 +63,40 @@ Run it from the repository root:
 - `ebDataToSQL/`
   - scripts for loading cached data into SQL systems
 
+## Change Request Protocol — how to use
+
+This repository includes a conversational change-request protocol in `.github/copilot-instructions.md`. Follow it when you want the assistant to make code changes.
+
+How to start a new change request (suggested phrasing):
+- "I would like to start a new change request"
+
+What happens next:
+1. The assistant will generate a 6-digit acceptance code and present it to you.
+2. You must reply with that exact code to confirm the request before any code is changed.
+3. If you instead ask "Are you ready?", the assistant will present a compact TLDR plan of the proposed changes and generate a fresh code for acceptance.
+4. If git actions are part of the workflow, changes should be staged only unless you explicitly request a commit.
+
+Why this exists:
+- The protocol prevents accidental or premature edits and ensures there is an explicit human approval step before code changes are applied.
+
+How to modify the protocol text
+
+Keep numbering stable so reviewers can reference specific steps. To insert a new instruction between two existing steps, add a decimal sub-step. For example:
+- To insert a step between step `1` and `2`, add `1.1` with the new instruction. This preserves the original integer indexes for easy reference.
+
+If you want to renumber the protocol to a new canonical order, do both of the following:
+1. Edit `.github/copilot-instructions.md` and update the numbered list.
+2. Update `README.md` with a short summary of the change and the new step numbers.
+
+Rule of thumb: prefer adding a decimal sub-step (e.g., `3.1`) to keep references stable; only renumber the whole list if you are intentionally reorganizing the entire protocol.
+
+Where to edit the protocol
+- Primary source of truth: `.github/copilot-instructions.md` in the repo root.
+- Make the same, short, corresponding note in `README.md` so humans who open the repo see the workflow quickly.
+
+After protocol changes
+- Follow the change-request protocol itself when making edits to the protocol file (generate code, get confirmation, then implement). This ensures edits to the protocol are made with the same governance as any other change.
+
 ## Python environment setup
 
 It is best to run this project in its own virtual environment.
@@ -284,37 +318,3 @@ Current repo conventions:
 ## Recommended next improvement
 
 The next major improvement for portability is centralizing all hard-coded paths into configuration so the project can run outside the original environment without source edits.
-
-## Change Request Protocol — how to use
-
-This repository includes a conversational change-request protocol in `.github/copilot-instructions.md`. Follow it when you want the assistant to make code changes.
-
-How to start a new change request (suggested phrasing):
-- "I would like to start a new change request"
-
-What happens next:
-1. The assistant will generate a 6-digit acceptance code and present it to you.
-2. You must reply with that exact code to confirm the request before any code is changed.
-3. If you instead ask "Are you ready?", the assistant will present a compact TLDR plan of the proposed changes and generate a fresh code for acceptance.
-4. If git actions are part of the workflow, changes should be staged only unless you explicitly request a commit.
-
-Why this exists:
-- The protocol prevents accidental or premature edits and ensures there is an explicit human approval step before code changes are applied.
-
-How to modify the protocol text
-
-Keep numbering stable so reviewers can reference specific steps. To insert a new instruction between two existing steps, add a decimal sub-step. For example:
-- To insert a step between step `1` and `2`, add `1.1` with the new instruction. This preserves the original integer indexes for easy reference.
-
-If you want to renumber the protocol to a new canonical order, do both of the following:
-1. Edit `.github/copilot-instructions.md` and update the numbered list.
-2. Update `README.md` with a short summary of the change and the new step numbers.
-
-Rule of thumb: prefer adding a decimal sub-step (e.g., `3.1`) to keep references stable; only renumber the whole list if you are intentionally reorganizing the entire protocol.
-
-Where to edit the protocol
-- Primary source of truth: `.github/copilot-instructions.md` in the repo root.
-- Make the same, short, corresponding note in `README.md` so humans who open the repo see the workflow quickly.
-
-After protocol changes
-- Follow the change-request protocol itself when making edits to the protocol file (generate code, get confirmation, then implement). This ensures edits to the protocol are made with the same governance as any other change.
