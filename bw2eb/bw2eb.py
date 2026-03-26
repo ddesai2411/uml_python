@@ -10,6 +10,7 @@ import uml_lib.ebCostLib as eb
 import eb.ebPO.translate_BW_POs as tPO
 #import uml_python.eb.ebPO.translate_BW_POs_WORKING as tPO
 import eb.ebInv.translate_BW_Invoices as tIN
+import uml_lib.ebAPI_lib as ebAPI
 import uml_lib.web_lib as umlWeb
 
 """
@@ -124,7 +125,10 @@ if __name__ == "__main__":
     #main("C:\\temp\\240106_PO_singleLineTest_nonFMPfirst.csv")
     # 240106 This one fails so the problem is if a nonFMP multiline is FIRST
     #main("C:\\temp\\240106_PO_multiLineTest_nonFMPfirst.csv")
-    main("B:\\dailyImports\\TEST\\_PO_test_standard_cases.csv")
+    # main("B:\\dailyImports\\TEST\\_PO_test_standard_cases.csv")
+    # Changed to use config.ebuilder.json daily_imports_dir so local test runs
+    # can find sample CSVs under the configured dailyImports root.
+    main(os.path.join(str(ebAPI.get_daily_imports_dir()), "TEST", "_PO_test_standard_cases.csv"))
     #main("B:\\dailyImports\\TEST\\_PO_test_Contingency.csv")
     
 

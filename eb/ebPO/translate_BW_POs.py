@@ -28,7 +28,7 @@ def get_currLead(ebProjs,currFMP):
         #FMlead = "TBD" # 240209 Why TBD??
         #print(":::::::::::::::::::::::",ebProjs[bCurrFMP])
     except:
-        currFMlead = "TBD-PROBLEM"
+        retVal = "TBD-PROBLEM"
     #print("240209*** FMlead:",retVal)
     return retVal
 
@@ -204,7 +204,11 @@ def parse_POcsv(theCSV,currStamp):
     # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\DataFiles\\" + currStamp + "_"
     print("First cost", firstCost)
 
-    ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
+    # ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
+    # Changed to use config.ebuilder.json daily_imports_dir so developers can
+    # repoint the old B:\dailyImports export folder without source edits.
+    daily_imports_dir = ebAPI.get_daily_imports_dir(create=True)
+    ofilebase = str(daily_imports_dir / f"_CSV_{currStamp}_")
     #ofilebase = ("C:\\temp\\_" + currStamp + "_")
     
     if firstProcess == True:

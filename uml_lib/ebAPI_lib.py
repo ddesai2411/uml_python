@@ -105,6 +105,27 @@ def get_cache_dir(create: bool = False) -> Path:
     return cache_dir
 
 
+def get_daily_imports_dir(create: bool = False) -> Path:
+    cfg = get_config()
+    daily_imports_dir = resolve_config_path(cfg.daily_imports_dir, "daily_imports_dir")
+
+    if create:
+        daily_imports_dir.mkdir(parents=True, exist_ok=True)
+        return daily_imports_dir
+
+    if not daily_imports_dir.exists():
+        raise FileNotFoundError(
+            f"Configured daily imports directory does not exist: {daily_imports_dir}. "
+            "Update 'daily_imports_dir' in config.ebuilder.json or create the folder first."
+        )
+    if not daily_imports_dir.is_dir():
+        raise NotADirectoryError(
+            f"Configured daily imports path is not a directory: {daily_imports_dir}"
+        )
+
+    return daily_imports_dir
+
+
 def get_fmp_output_file() -> Path:
     cfg = get_config()
     output_file = resolve_config_path(cfg.fmp_output_file, "fmp_output_file")

@@ -122,12 +122,74 @@ Example:
 An example config is included at:
 - `config.ebuilder.example.json`
 
+### `daily_imports_dir`
+
+`daily_imports_dir` is the base folder for the files that older scripts used to write under:
+- `B:\dailyImports`
+
+Set it to any writable folder on your machine or shared drive, for example:
+- `C:\git\UMASS\uml_python\data\dailyImports`
+
+Current workflows use this directory for generated outputs such as:
+- timestamped CSV import workbooks like `_CSV_<timestamp>_...`
+- timestamped XML import workbooks like `_XML_<timestamp>_...`
+- summary HTML files like `_PODataTotals.html` and `_InvoiceDataTotals.html`
+- working subfolders such as `fromBuyways_reports`, `fromXML`, and `TEST`
+
+Usage notes:
+- keep the key name exactly as `daily_imports_dir` in `config.ebuilder.json`
+- point it at the root `dailyImports` folder, not directly at one of its subfolders
+- use a path that the current user can read and write
+- code reads it through `uml_lib.ebAPI_lib.get_daily_imports_dir()` when building daily import output paths
+- the nearby `B:\dailyImports...` comments left in older files are intentional breadcrumbs showing the legacy location that was replaced by this config value
+
 ## How to run
 
 ### Run the dashboard
 
 From the repo root, with the virtual environment activated:
 - `python ebDashboard.py`
+
+## Buyways to E-Builder Import
+
+### `Run bwebJoined`
+
+`Run bwebJoined` is the dashboard action that processes a batch of zipped Buyways report exports without prompting for a file picker.
+
+What it does:
+1. Reads `daily_imports_dir` from `config.ebuilder.json`.
+2. Looks in `daily_imports_dir\fromBuyways_reports\` for `.zip` files.
+3. Extracts each zip file into that same `fromBuyways_reports` folder.
+4. Scans the extracted files for:
+   - `*po_search*.csv`
+   - `*invoice_search*.csv`
+5. Sends each CSV through the standard `bw2eb` translator:
+   - PO CSVs go to the PO import workflow
+   - invoice CSVs go to the invoice import workflow
+6. Deletes each CSV after it is processed.
+7. Collects the generated import workbooks and groups them into:
+   - PO cost imports
+   - PO process imports
+   - invoice cost imports
+   - invoice process imports
+8. Joins each non-empty group into a single combined workbook.
+9. Updates the rolling HTML summary files for PO and invoice totals.
+10. Returns the list of joined workbook paths to the dashboard UI.
+
+Paths used by `Run bwebJoined`:
+- reads zip files from `daily_imports_dir\fromBuyways_reports\`
+- reads extracted CSV files from `daily_imports_dir\fromBuyways_reports\`
+- writes per-file import workbooks under `daily_imports_dir` with names like `_CSV_<timestamp>_POcostImport.xlsx`
+- writes joined batch workbooks under `daily_imports_dir` with names like `_CSV-ZIP_<timestamp>_POCostImportJoinedData.xlsx`
+- updates summary HTML files at:
+  - `daily_imports_dir\_PODataTotals.html`
+  - `daily_imports_dir\_InvoiceDataTotals.html`
+
+Important notes:
+- `daily_imports_dir\fromBuyways_reports\` must already exist before you run this workflow
+- the script currently computes a `processed` subfolder path under `fromBuyways_reports`, but the zip-move step is commented out, so zip files are currently left in place after extraction
+- the actual HTML summary output path comes from `daily_imports_dir`, even though there are a few leftover historical path variables in the older script
+- this workflow depends on the same downstream PO and invoice translators used by the single-file `Run bw2eb` button
 
 ### Run a single script directly
 
@@ -221,3 +283,37 @@ Current repo conventions:
 ## Recommended next improvement
 
 The next major improvement for portability is centralizing all hard-coded paths into configuration so the project can run outside the original environment without source edits.
+
+## Change Request Protocol — how to use
+
+This repository includes a conversational change-request protocol in `.github/copilot-instructions.md`. Follow it when you want the assistant to make code changes.
+
+How to start a new change request (suggested phrasing):
+- "I would like to start a new change request"
+
+What happens next:
+1. The assistant will generate a 6-digit acceptance code and present it to you.
+2. You must reply with that exact code to confirm the request before any code is changed.
+3. If you instead ask "Are you ready?", the assistant will present a compact TLDR plan of the proposed changes and generate a fresh code for acceptance.
+4. If git actions are part of the workflow, changes should be staged only unless you explicitly request a commit.
+
+Why this exists:
+- The protocol prevents accidental or premature edits and ensures there is an explicit human approval step before code changes are applied.
+
+How to modify the protocol text
+
+Keep numbering stable so reviewers can reference specific steps. To insert a new instruction between two existing steps, add a decimal sub-step. For example:
+- To insert a step between step `1` and `2`, add `1.1` with the new instruction. This preserves the original integer indexes for easy reference.
+
+If you want to renumber the protocol to a new canonical order, do both of the following:
+1. Edit `.github/copilot-instructions.md` and update the numbered list.
+2. Update `README.md` with a short summary of the change and the new step numbers.
+
+Rule of thumb: prefer adding a decimal sub-step (e.g., `3.1`) to keep references stable; only renumber the whole list if you are intentionally reorganizing the entire protocol.
+
+Where to edit the protocol
+- Primary source of truth: `.github/copilot-instructions.md` in the repo root.
+- Make the same, short, corresponding note in `README.md` so humans who open the repo see the workflow quickly.
+
+After protocol changes
+- Follow the change-request protocol itself when making edits to the protocol file (generate code, get confirmation, then implement). This ensures edits to the protocol are made with the same governance as any other change.

@@ -476,7 +476,11 @@ def translate_Buyways_POs(theCSV, currStamp):
     #uname = getpass.getuser()
     # ofilebase = "DataFiles/" + currStamp + "_"
     # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\DataFiles\\" + currStamp + "_"
-    ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
+    # ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
+    # Changed to use config.ebuilder.json daily_imports_dir so developers can
+    # repoint the old B:\dailyImports export folder without source edits.
+    daily_imports_dir = ebAPI.get_daily_imports_dir(create=True)
+    ofilebase = str(daily_imports_dir / f"_CSV_{currStamp}_")
     print("First cost", firstCost)
 
     if firstProcess == True:
