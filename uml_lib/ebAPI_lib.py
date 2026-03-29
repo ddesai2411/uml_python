@@ -351,7 +351,8 @@ def APIconnect(module: str, timeout: float = 30.0) -> ebResponse:
 
 def postTOAPI(URL, data, timeout: float = 30.0) -> Any:
     token = get_ebToken()
-
+    if isinstance(data, dict):
+        data = json.dumps(data)
     req = Request(URL, method="POST", data=data.encode("utf-8"))
     req.add_header("Authorization", f"Bearer {token.access_token}")
     req.add_header("Accept", "application/json")
