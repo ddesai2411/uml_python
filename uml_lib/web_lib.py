@@ -1,6 +1,7 @@
 import time, shutil
 from datetime import datetime
 from pathlib import Path
+from uml_lib import ebAPI_lib as ebAPI
 
 
 
@@ -202,14 +203,17 @@ def addToHTML(theHTML, currTime, POorInvoice, tableRow, COs):
         f.close()
         
 def outputHTML(POorInvoice, currTime, theData, COs):
+    # Legacy outputs lived under B:\dailyImports; use config.ebuilder.json
+    # daily_imports_dir so each environment can control the summary HTML path.
+    daily_imports_dir = ebAPI.get_daily_imports_dir(create=True)
     if POorInvoice == "Invoice":
         #thePath = "B:\\dailyImports\\TEST\\_TEST_InvoiceDataTotals.html"
-        thePath = "B:\\dailyImports\\_InvoiceDataTotals.html"
+        thePath = daily_imports_dir / "_InvoiceDataTotals.html"
         #thePath = "/Users/kysgattu/FIS/BDrive/dailyImports/_InvoiceDataTotals.html"
         
     else:
         #thePath = "B:\\dailyImports\\TEST\\_TEST_PODataTotals.html"
-        thePath = "B:\\dailyImports\\_PODataTotals.html"
+        thePath = daily_imports_dir / "_PODataTotals.html"
         #thePath = "/Users/kysgattu/FIS/BDrive/dailyImports/_PODataTotals.html"
 
     theHTML = Path(thePath)

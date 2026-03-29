@@ -10,6 +10,7 @@ import uml_lib.ebCostLib as eb
 #import uml_python.eb.ebPO.translate_BW_POs as tPO
 import eb.ebPO.translate_BW_POs_WORKING as tPO
 import eb.ebInv.translate_BW_Invoices as tIN
+import uml_lib.ebAPI_lib as ebAPI
 import uml_lib.web_lib as umlWeb
 
 """
@@ -114,6 +115,9 @@ if __name__ == "__main__":
     #main("B:\\dailyImports\\TEST\\230731_PO.csv")
     #main("B:\\dailyImports\\TEST\\_PO_multipleLine.csv")
     #main("B:\\dailyImports\\TEST\\_PO_test_standard_cases.csv")
-    main("B:\\dailyImports\\TEST\\230901_FMPproblems.csv")
+    # main("B:\\dailyImports\\TEST\\230901_FMPproblems.csv")
+    # Changed to use config.ebuilder.json daily_imports_dir so local test runs
+    # can find sample CSVs under the configured dailyImports root.
+    main(os.path.join(str(ebAPI.get_daily_imports_dir()), "TEST", "230901_FMPproblems.csv"))
     
         

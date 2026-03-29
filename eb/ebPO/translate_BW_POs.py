@@ -1,4 +1,4 @@
-import csv, datetime, getpass, chardet
+import csv, datetime, getpass
 import uml_lib.ebCostLib as ebCost
 # Cost line - 230731 - working on FMP in description/simplifying code
 import eb.ebPO.write_PO_Cost_line as wPOC
@@ -28,7 +28,7 @@ def get_currLead(ebProjs,currFMP):
         #FMlead = "TBD" # 240209 Why TBD??
         #print(":::::::::::::::::::::::",ebProjs[bCurrFMP])
     except:
-        currFMlead = "TBD-PROBLEM"
+        retVal = "TBD-PROBLEM"
     #print("240209*** FMlead:",retVal)
     return retVal
 
@@ -84,11 +84,8 @@ def parse_POcsv(theCSV,currStamp):
     # EB lookup: Commitment Type
     # EB fields contstant/predetermined: Status, Retainage (0 or 5)
         
-    with open(theCSV, 'rb') as f:
-        result = chardet.detect(f.read())
-        encodingFormat = result['encoding']
     myCount = 0
-    with open(theCSV,encoding=encodingFormat) as csvfile:
+    with ebCost.open_buyways_csv(theCSV) as csvfile:
         POdata = csv.DictReader(csvfile,delimiter=',') #quotecharacter?
         counts = {"EBprocess": 0, "EBcostST": 0, "EBcostFMP": 0, "EBexists": 0, "EBexistsCO?": 0, "nonEB": 0}
         currPOvalueTotal = 0.0
@@ -204,7 +201,11 @@ def parse_POcsv(theCSV,currStamp):
     # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\DataFiles\\" + currStamp + "_"
     print("First cost", firstCost)
 
-    ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
+    # ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
+    # Changed to use config.ebuilder.json daily_imports_dir so developers can
+    # repoint the old B:\dailyImports export folder without source edits.
+    daily_imports_dir = ebAPI.get_daily_imports_dir(create=True)
+    ofilebase = str(daily_imports_dir / f"_CSV_{currStamp}_")
     #ofilebase = ("C:\\temp\\_" + currStamp + "_")
     
     if firstProcess == True:

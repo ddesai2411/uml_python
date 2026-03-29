@@ -679,6 +679,7 @@ def InvXMLtoExcel(Invoice_dict):
                         14: currQuantityThisPeriods}
 
     currTime = UMLweb.tstamper2()
+    daily_imports_dir = eb.get_daily_imports_dir(create=True)
     if firstCost == False: # if we found at least one. Can we check count instead?
         
         currWB, currWS = create_Excel()
@@ -698,11 +699,13 @@ def InvXMLtoExcel(Invoice_dict):
         # look at how we do this for CSV version
         #240204 SAME QUESTION: don't save file if we have nothing to save!
         # what variable tells is how many invoices??????
-        oDir = "B:\\dailyImports\\_XML_"
+        # oDir = "B:\\dailyImports\\_XML_"
+        # Changed to use config.ebuilder.json daily_imports_dir so the legacy
+        # B:\dailyImports XML export folder can be redirected per environment.
         #oDir = "/Users/kysgattu/FIS/BDrive/dailyImports/_XML_"
-        opFile = oDir + currTime + '_InvoicecostImport.xlsx'
+        opFile = str(daily_imports_dir / f"_XML_{currTime}_InvoicecostImport.xlsx")
         currWB.save(opFile)
-        print('Report Saved At: ', oDir + currTime + '_InvoicecostImport.xlsx')
+        print('Report Saved At: ', opFile)
     else:
         print(EBCost)
         opFile = "No output file"
@@ -764,9 +767,12 @@ def InvXMLtoExcel(Invoice_dict):
                 writeCell(currPAYAPWS, r, j, dataincell)  # remove this to create seperate files for each XML
                 # print(len(dataincell))
         # currWB.save('test1.xlsx')
-        opPAYAPFile = oDir + currTime + '_PAYAP_InvoicecostImport.xlsx'
+        # opPAYAPFile = "B:\\dailyImports\\_XML_" + currTime + "_PAYAP_InvoicecostImport.xlsx"
+        # Changed to use config.ebuilder.json daily_imports_dir so PAYAP exports
+        # follow the configured dailyImports root instead of a fixed drive.
+        opPAYAPFile = str(daily_imports_dir / f"_XML_{currTime}_PAYAP_InvoicecostImport.xlsx")
         currPAYAPWB.save(opPAYAPFile)
-        print('PAYAPReport Saved At: ', oDir + currTime + '_PAYAP_InvoicecostImport.xlsx')
+        print('PAYAPReport Saved At: ', opPAYAPFile)
 
     else:
         opPAYAPFile = "No PAYAP Invoices Found"
@@ -789,16 +795,22 @@ def InvXMLtoExcel(Invoice_dict):
 
     # 230701 Changing to appending to an existing HTML or, if none exists, creating a new one
     # 230707 Now, using web_lib, same code we use for CSV/ZIP/Joined processing
-    thePath = "B:\\dailyImports\\_InvoiceDataTotals.html"
+    # thePath = "B:\\dailyImports\\_InvoiceDataTotals.html"
+    # Changed to use config.ebuilder.json daily_imports_dir so invoice summary
+    # HTML writes to the configured dailyImports root for the environment.
+    thePath = eb.get_daily_imports_dir(create=True) / "_InvoiceDataTotals.html"
     COs = {}
     
     UMLweb.outputHTML("Invoice", currTime, stats,COs)
 
+    # stats_html = "B:\\dailyImports\\_InvoiceDataTotals.html"
+    # Changed to use config.ebuilder.json daily_imports_dir for the summary
+    # HTML location that callers should inspect after the report runs.
     retVal = {'Invoice_data': stats,
               'stats': stats,
               'invoice_report_excel':opFile,
               'PAYAP_report_excel': opPAYAPFile,
-              'stats_html':"SUPERCEDEDED - Check This B:\\dailyImports\\_InvoiceDataTotals.html"}
+              'stats_html':f"SUPERCEDEDED - Check This {eb.get_daily_imports_dir(create=True) / '_InvoiceDataTotals.html'}"}
     return retVal
 
 xlHeaders = {1: "FMP Number",
