@@ -5,6 +5,7 @@
 
 #import eb.ebAPI_lib as eb
 import xmltodict
+from uml_lib import ebAPI_lib as ebAPI
 from uml_lib import web_lib as web
 import os, shutil, glob
 
@@ -191,7 +192,10 @@ rows = len(inv_data['PO Numbers'])
 headerRow = inv_data.keys()
 currTime = web.tstamper()
 
-oDir = "B:\\dailyImports\\fromXML\\"
+# oDir = "B:\\dailyImports\\fromXML\\"
+# Changed to use config.ebuilder.json daily_imports_dir so fromXML output can
+# move with the configured dailyImports root instead of a fixed shared drive.
+oDir = os.path.join(str(ebAPI.get_daily_imports_dir(create=True)), "fromXML") + os.sep
 
 web.copyFiles(oDir)
 html_file = open(oDir + 'invoice-log.html', 'w')

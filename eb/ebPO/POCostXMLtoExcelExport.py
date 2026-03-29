@@ -907,12 +907,15 @@ def POXMLtoExcel(PO_dict):
                 # print(len(dataincell))
         # currWB.save('test1.xlsx')
 
-        oDir = "B:\\dailyImports\\_XML_"
+        # oDir = "B:\\dailyImports\\_XML_"
+        # Changed to use config.ebuilder.json daily_imports_dir so the legacy
+        # B:\dailyImports XML export folder can be redirected per environment.
+        daily_imports_dir = eb.get_daily_imports_dir(create=True)
         #oDir = "/Users/kysgattu/FIS/BDrive/dailyImports/_XML_"
         # oDir = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\umlV2\\outputfiles\\"
-        opFile = oDir + currTime + '_POcostImport.xlsx'
+        opFile = str(daily_imports_dir / f"_XML_{currTime}_POcostImport.xlsx")
         currWB.save(opFile)
-        print('Report Saved At: ', oDir + currTime + '_POcostImport.xlsx')
+        print('Report Saved At: ', opFile)
 
     else:
         print("No POs for EB found. EB count is:", EB)
@@ -939,7 +942,10 @@ def POXMLtoExcel(PO_dict):
 
     # 230701 Changing to appending to an existing HTML or, if none exists, creating a new one
     # 230707 Now, using web_lib, same code we use for CSV/ZIP/Joined processing
-    thePath = "B:\\dailyImports\\TEST\\_TEST_PODataTotals.html"
+    # thePath = "B:\\dailyImports\\TEST\\_TEST_PODataTotals.html"
+    # Changed to use config.ebuilder.json daily_imports_dir so TEST HTML output
+    # follows the configured dailyImports root instead of a hard-coded drive.
+    thePath = eb.get_daily_imports_dir(create=True) / "TEST" / "_TEST_PODataTotals.html"
     TESTCOs = {
         "TEST12345678":"TEST123456",
         "TEST12345690":"TEST246800"
@@ -955,17 +961,23 @@ def POXMLtoExcel(PO_dict):
     # pass the PO_dict back
     print("*****", PO_dict['EBPOFiles'])
     if EB > 0:
+        # stats_html = "B:\\dailyImports\\_PODataTotals.html"
+        # Changed to use config.ebuilder.json daily_imports_dir for the summary
+        # HTML location that callers should inspect after the report runs.
         retVal = {'po_data': po_data,
                   'stats': stats,
                   'po_report_excel':opFile,
                   'ChangeOrders': COs,
-                  'stats_html':"REPLACED - Check this - B:\\dailyImports\\_PODataTotals.html"}
+                  'stats_html':f"REPLACED - Check this - {eb.get_daily_imports_dir(create=True) / '_PODataTotals.html'}"}
     else:
+        # stats_html = "B:\\dailyImports\\_PODataTotals.html"
+        # Changed to use config.ebuilder.json daily_imports_dir for the summary
+        # HTML location that callers should inspect after the report runs.
         retVal = {'po_data': po_data,
                   'stats': stats,
                   'po_report_excel':"No output",
                   'ChangeOrders': COs,
-                  'stats_html':"REPLACED - Check this - B:\\dailyImports\\_PODataTotals.html"}
+                  'stats_html':f"REPLACED - Check this - {eb.get_daily_imports_dir(create=True) / '_PODataTotals.html'}"}
     return retVal
 
 xlHeaders = {1: "Commitment Number",

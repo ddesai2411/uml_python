@@ -3,6 +3,7 @@ import zipfile
 
 import bw2eb.bw2eb as bw2eb
 import uml_lib.ebCostLib as ebCost
+import uml_lib.ebAPI_lib as ebAPI
 import uml_lib.web_lib as UMLweb
 
 # Purpose: Get the Buyways Reports in the form of "ZIP" files in the directory.
@@ -23,9 +24,14 @@ def main():
     # ofilebase = 'C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\outputfiles\\' + currStamp + "_"
 
     
-    theDir = "B:\\dailyImports\\fromBuyways_reports\\"
+    # theDir = "B:\\dailyImports\\fromBuyways_reports\\"
+    # Changed to use config.ebuilder.json daily_imports_dir so the legacy
+    # B:\dailyImports output root can be redirected without editing source.
+    daily_imports_dir = str(ebAPI.get_daily_imports_dir(create=True))
+    theDir = os.path.join(daily_imports_dir, "fromBuyways_reports") + os.sep
     processed_Dir = theDir + "processed\\"
-    ofilebase = "B:\\dailyImports\\_CSV-ZIP_" + currStamp + "_"
+    # ofilebase = "B:\\dailyImports\\_CSV-ZIP_" + currStamp + "_"
+    ofilebase = os.path.join(daily_imports_dir, f"_CSV-ZIP_{currStamp}_")
 
     zip_files = []
     for file in os.listdir(theDir):

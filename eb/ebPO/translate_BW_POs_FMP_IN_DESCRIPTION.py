@@ -1,5 +1,4 @@
 import csv, datetime, getpass
-import chardet
 """
 import ebCOST_newAPI.eb.ebCostLib as ebCost
 import ebCOST_newAPI.eb.ebPO.write_PO_Cost_line as wPOC
@@ -151,11 +150,7 @@ def translate_Buyways_POs(theCSV, currStamp):
 
     # NOTE: Noticed the encoding type of csv file is not same always,
     # so adding code to check encoding of the file before reading the rows Just in Case
-    with open(theCSV, 'rb') as f:
-        result = chardet.detect(f.read())
-        encodingFormat = result['encoding']
-
-    with open(theCSV,encoding=encodingFormat) as csvfile:
+    with ebCost.open_buyways_csv(theCSV) as csvfile:
         POdata = csv.DictReader(csvfile,delimiter=',') #quotecharacter?
         currPO = ""
         currPOvalueTotal = 0.0
@@ -498,7 +493,11 @@ def translate_Buyways_POs(theCSV, currStamp):
     #uname = getpass.getuser()
     # ofilebase = "DataFiles/" + currStamp + "_"
     # ofilebase = "C:\\Users\\K_Gattu\\PycharmProjects\\uml_python\\uml\\DataFiles\\" + currStamp + "_"
-    ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
+    # ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
+    # Changed to use config.ebuilder.json daily_imports_dir so developers can
+    # repoint the old B:\dailyImports export folder without source edits.
+    daily_imports_dir = ebAPI.get_daily_imports_dir(create=True)
+    ofilebase = str(daily_imports_dir / f"_CSV_{currStamp}_")
     print("First cost", firstCost)
 
     if firstProcess == True:

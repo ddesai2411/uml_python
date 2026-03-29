@@ -1,6 +1,8 @@
 from openpyxl import Workbook
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
+from io import StringIO
+from pathlib import Path
 import os
 import pandas as pd
 
@@ -43,6 +45,23 @@ def checkBWcsv(theFile):
     except:
         retVal = "File Not Found"
     return retVal
+
+
+def open_buyways_csv(theFile):
+    raw = Path(theFile).read_bytes()
+
+    # Buyways exports are usually UTF-8-compatible, but some files contain
+    # Windows-1252 characters later in the file. Decode in memory with a
+    # deterministic fallback so csv parsing doesn't depend on chardet guesses.
+    for encoding in ("utf-8-sig", "cp1252", "latin-1"):
+        try:
+            return StringIO(raw.decode(encoding), newline="")
+        except UnicodeDecodeError:
+            continue
+
+    return StringIO(raw.decode("utf-8", errors="replace"), newline="")
+
+
 def parse_Buyways_Description(BWdesc):
     # 230727 We need to expand this logic: if the FMP is not in the PS project number, we need to look in the description of the first line
     # This is where Bus Ops is adding it as "FMP XXXXXX"
