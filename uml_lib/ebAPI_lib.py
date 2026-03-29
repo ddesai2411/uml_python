@@ -81,7 +81,7 @@ def get_config() -> eBuilderConfig:
     if _APIConfig is not None:
         return _APIConfig
 
-    _APIConfig = load_config(Path("config.ebuilder.json"))
+    _APIConfig = load_config()
 
     return _APIConfig
 

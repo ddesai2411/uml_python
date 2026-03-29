@@ -41,17 +41,18 @@ class eBuilderConfig:
         )
 
 
-def load_config(path: Path) -> eBuilderConfig:
-    if not path.exists():
-        raise FileNotFoundError(f"Config file not found: {path}")
-    if not path.is_file():
-        raise IsADirectoryError(f"Config path is not a file: {path}")
+def load_config() -> eBuilderConfig:
+    config_path = Path.cwd().parent / "config.ebuilder.json"
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+    if not config_path.is_file():
+        raise IsADirectoryError(f"Config path is not a file: {config_path}")
 
-    with path.open("r", encoding="utf-8") as f:
+    with config_path.open("r", encoding="utf-8") as f:
         try:
             data = json.load(f)
         except json.JSONDecodeError as e:
-            raise ValueError(f"Invalid JSON in {path}: {e}") from e
+            raise ValueError(f"Invalid JSON in {config_path}: {e}") from e
 
     if not isinstance(data, dict):
         raise ValueError("Top-level JSON value must be an object")
