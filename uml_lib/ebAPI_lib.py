@@ -2,6 +2,7 @@
 # coding: utf-8
 
 import json
+import time
 from pathlib import Path
 from urllib.parse import urlencode
 from typing import Optional
@@ -73,6 +74,7 @@ from uml_lib.ebAPI_response import ebResponse, ResponseMeta
 # # Connection to the API
 
 _APIToken: Optional[eBuilderTokenResponse] = None
+_TokenTimestamp: Optional[float] = None
 _APIConfig: Optional[eBuilderConfig] = None
 
 def get_config() -> eBuilderConfig:
@@ -133,10 +135,15 @@ def get_fmp_output_file() -> Path:
     return output_file
 
 def get_ebToken(timeout: float = 30.0) -> eBuilderTokenResponse:
-    global _APIToken
+    global _APIToken, _TokenTimestamp
 
-    if _APIToken is not None:
-        return _APIToken
+    if _APIToken is not None and _TokenTimestamp is not None:
+        if time.time() <= _TokenTimestamp + _APIToken.expires_in:
+            return _APIToken
+        else:
+            # Token expired, reset
+            _APIToken = None
+            _TokenTimestamp = None
 
     cfg = get_config()
     url = cfg.hostname + "/api/v2/authenticate"
@@ -174,6 +181,7 @@ def get_ebToken(timeout: float = 30.0) -> eBuilderTokenResponse:
         raise ValueError("Expected JSON object at top level in token response")
 
     _APIToken = eBuilderTokenResponse.from_dict(payload)
+    _TokenTimestamp = time.time()
     return _APIToken
 
 def get_request(url: str, timeout: float = 30.0) -> str:
