@@ -84,13 +84,17 @@ def run_bw2eb():
             lblResults.config(text=("Complete. Excel files are saved in: " + res))
 
 def run_monthStat():
-    res = moStat.main()
-    resStr = "Monthly Status Complete for: " + res["Month"]
-    resStr += "\nProjects for report: " + str(res["ProjCount"]) + "\n"
-    resStr += "No Updates: " + str(res["No Updates"]) + ". Not Active or TDactive: " + str(res["Not Active"])
-    resStr += ". JSON Length: " + str(res["obj length"]) + " - " + str(res["ProjCount"]+res["No Updates"]+res["Not Active"]) + "\n"
-    resStr += "Saved to: " + res["ofile"]
-    lbl_moStatResults.config(text=resStr)
+    try:
+        res = moStat.main()
+        resStr = "Monthly Status Complete for: " + res["Month"]
+        resStr += "\nProjects for report: " + str(res["ProjCount"]) + "\n"
+        resStr += "No Updates: " + str(res["No Updates"]) + ". Not Active or TDactive: " + str(res["Not Active"])
+        resStr += ". JSON Length: " + str(res["obj length"]) + " - " + str(res["ProjCount"]+res["No Updates"]+res["Not Active"]) + "\n"
+        resStr += "Saved to: " + res["ofile"]
+        lbl_moStatResults.config(text=resStr)
+    except Exception as e:
+        mb.showerror(title="Monthly Status", message=str(e))
+        lbl_moStatResults.config(text="Monthly Status failed:\n" + str(e))
 
 def run_timeAlloc():
     if timeAllocCSV == "":

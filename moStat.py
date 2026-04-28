@@ -3,6 +3,7 @@
 from openpyxl import Workbook
 from openpyxl.styles import Alignment
 from datetime import datetime
+from urllib.error import HTTPError
 
 #import newebapi_proj as proj_data
 #import newebapi_budg as budg_data
@@ -152,16 +153,34 @@ def getDataFromAPI(processPrefix):
 
 def getCloseoutFMPs():
     closeoutFMPs = []
-    CLOjson = getDataFromAPI("CLO")
-    CLNONjson = getDataFromAPI("CLNON")
-    for i in range(len(CLOjson)):
-        FMP = CLOjson[i]['Project']['CustomFields']['FMP Number']
-        if FMP not in closeoutFMPs:
-            closeoutFMPs.append(FMP)
-    for i in range(len(CLNONjson)):
-        FMP = CLNONjson[i]['Project']['CustomFields']['FMP Number']
-        if FMP not in closeoutFMPs:
-            closeoutFMPs.append(FMP)
+    try:
+        CLOjson = getDataFromAPI("CLO")
+        for i in range(len(CLOjson)):
+            FMP = CLOjson[i]['Project']['CustomFields']['FMP Number']
+            if FMP not in closeoutFMPs:
+                closeoutFMPs.append(FMP)
+    except HTTPError as e:
+        if e.code == 401:
+            print(f"WARNING: No permission to access CLO endpoint (401). Skipping CLO data.")
+        else:
+            print(f"WARNING: Failed to retrieve CLO data: {e.code} {e.reason}")
+    except Exception as e:
+        print(f"WARNING: Error retrieving CLO data: {str(e)}")
+
+    try:
+        CLNONjson = getDataFromAPI("CLNON")
+        for i in range(len(CLNONjson)):
+            FMP = CLNONjson[i]['Project']['CustomFields']['FMP Number']
+            if FMP not in closeoutFMPs:
+                closeoutFMPs.append(FMP)
+    except HTTPError as e:
+        if e.code == 401:
+            print(f"WARNING: No permission to access CLNON endpoint (401). Skipping CLNON data.")
+        else:
+            print(f"WARNING: Failed to retrieve CLNON data: {e.code} {e.reason}")
+    except Exception as e:
+        print(f"WARNING: Error retrieving CLNON data: {str(e)}")
+
     return closeoutFMPs
 
 
