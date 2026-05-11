@@ -13,6 +13,7 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from uml_lib.ebAPI_tokenresponse import eBuilderTokenResponse
 from uml_lib.ebAPI_response import ebResponse, ResponseMeta
+print("LOADED ebAPI_lib FROM:", __file__)
 
 # """
 # ebAPI_lib v2.0
@@ -189,6 +190,7 @@ def get_request(url: str, timeout: float = 30.0) -> str:
     Perform a single GET request with auth + JSON headers and return decoded text.
     Adds the response body to HTTPError for easier troubleshooting.
     """
+    #print("GET:", url)
     token = get_ebToken()
     req = Request(url, method="GET")
     req.add_header("Authorization", f"Bearer {token.access_token}")
@@ -204,6 +206,10 @@ def get_request(url: str, timeout: float = 30.0) -> str:
             body = e.read().decode("utf-8", errors="replace")
         except Exception:
             body = ""
+
+        #print("FAILED GET:", url)   # 👈 ADD THIS
+        #print("STATUS:", e.code)
+        #print("BODY:", body)
         # Re-raise HTTPError with an augmented message that includes the body preview.
         raise HTTPError(e.url, e.code, f"{e.reason}. Response body: {body}", e.headers, e.fp)
     except URLError:
@@ -367,6 +373,8 @@ def postTOAPI(URL, data, timeout: float = 30.0) -> Any:
     req.add_header("Content-Type", "application/json")
 
     try:
+        #print("POST:", URL) 
+
         with urlopen(req, timeout=timeout) as resp:
             charset = resp.headers.get_content_charset() or "utf-8"
             response = resp.read().decode(charset)
@@ -383,6 +391,10 @@ def postTOAPI(URL, data, timeout: float = 30.0) -> Any:
             body = e.read().decode("utf-8", errors="replace")
         except Exception:
             body = ""
+
+        #print("FAILED POST:", URL)   # 👈 ADD THIS
+        #print("STATUS:", e.code)
+        #print("BODY:", body)
         raise HTTPError(e.url, e.code, f"{e.reason}. Response body: {body}", e.headers, e.fp)
     except URLError:
         raise
@@ -1196,87 +1208,87 @@ def get_fundingSources_allData():
 
 ## PO Requisitions
 
-def getPOREQDataNonCostProcess():
-    POREQdatafields = {
-        "selectedFields": [
-            "Project/ProjectName",
-            "Process/Prefix",
-            "ProcessInstance/CurrentStepName",
-            "ProcessInstance/PortalId",
-            "ProcessInstance/Subject",
-            "ProcessInstance/InstanceCounter",
-            "ProcessInstance/DataFields/Description",
-            "ProcessInstance/DataFields/Blanket Order",
-            "ProcessInstance/CurrentStepName",
-            "ProcessInstance/DataFields/username",
-            "ProcessInstance/DataFields/Shipping Address",
-            "ProcessInstance/DataFields/Attention",
-            "ProcessInstance/DataFields/Address Line",
-            "ProcessInstance/DataFields/City",
-            "ProcessInstance/DataFields/State",
-            "ProcessInstance/DataFields/Zip Code",
-            "ProcessInstance/DataFields/Room Floor Suite",
-            "ProcessInstance/DataFields/External Comments"
+#def getPOREQDataNonCostProcess():
+    #POREQdatafields = {
+        #"selectedFields": [
+            #"Project/ProjectName",
+            #"Process/Prefix",
+            #"ProcessInstance/CurrentStepName",
+            #"ProcessInstance/PortalId",
+            #"ProcessInstance/Subject",
+            #"ProcessInstance/InstanceCounter",
+            #"ProcessInstance/DataFields/Description",
+            #"ProcessInstance/DataFields/Blanket Order",
+            #"ProcessInstance/CurrentStepName",
+            #"ProcessInstance/DataFields/username",
+            #"ProcessInstance/DataFields/Shipping Address",
+            #"ProcessInstance/DataFields/Attention",
+            #"ProcessInstance/DataFields/Address Line",
+            #"ProcessInstance/DataFields/City",
+            #"ProcessInstance/DataFields/State",
+            #"ProcessInstance/DataFields/Zip Code",
+            #"ProcessInstance/DataFields/Room Floor Suite",
+            #"ProcessInstance/DataFields/External Comments"
 
-        ],
-        "Filters": [
-            {
-                "Field": "ProcessInstance/CurrentStepName",
-                "Operation": "=",
-                "Value": "Python Hold: Send to BW"
-            },
-        ],
-    }
+        #],
+       #"Filters": [
+            #{
+                #"Field": "ProcessInstance/CurrentStepName",
+                #"Operation": "=",
+                #"Value": "Python Hold: Send to BW"
+            #},
+        #],
+    #}
     #theURL = 'https://api2.e-builder.net/api/v2/noncostprocesses/query?processprefix=POREQ'
-    cfg =  get_config()
-    theURL = cfg.hostname + "/api/v2/noncostprocesses/query?processprefix=POREQ"
+    #cfg =  get_config()
+    #theURL = cfg.hostname + "/api/v2/noncostprocesses/query?processprefix=POREQ"
 
-    print('Getting POREQ data')
-    POREQjson = postTOAPI(theURL, POREQdatafields)['records']
-    return POREQjson
+    #print('Getting POREQ data')
+    #POREQjson = postTOAPI(theURL, POREQdatafields)['records']
+    #return POREQjson
 
-def getPOREQData():
-    POREQdatafields = {"selectedFields": [
-            "Project/ProjectName",
-            "Process/Prefix",
-            "ProcessInstance/CurrentStepName",
-            "ProcessInstance/PortalId",
-            "ProcessInstance/Subject",
-            "ProcessInstance/InstanceCounter",
-            "ProcessInstance/DataFields/Description",
-            "ProcessInstance/DataFields/Blanket Order",
-            "ProcessInstance/CurrentStepName",
-            "ProcessInstance/DataFields/username",
-            "ProcessInstance/DataFields/Shipping Address",
-            "ProcessInstance/DataFields/Attention",
-            "ProcessInstance/DataFields/Address Line",
-            "ProcessInstance/DataFields/City",
-            "ProcessInstance/DataFields/State",
-            "ProcessInstance/DataFields/Zip Code",
-            "ProcessInstance/DataFields/Room Floor Suite",
-            "ProcessInstance/DataFields/External Comments",
-            "CommitmentType/CommitmentType",
-            "Company/CompanyId",
-            "LineItems/CommitmentItem/UnitCost",
-            "LineItems/CommitmentItem/Amount",
-            "LineItems/CommitmentItem/Quantity",
-            "LineItems/CommitmentItem/FundingRuleId",
-            "LineItems/CommitmentItem/ItemNumber"
-        ],
-        "Filters":[
-            {
-                "Field" : "ProcessInstance/CurrentStepName",
-                "Operation" : "=",
-                "Value" : "Python Hold: Send to BW"
-                }
-               ]
-    }
+#def getPOREQData():
+   # POREQdatafields = {"selectedFields": [
+           # "Project/ProjectName",
+           # "Process/Prefix",
+           # "ProcessInstance/CurrentStepName",
+            #"ProcessInstance/PortalId",
+           # "ProcessInstance/Subject",
+           # "ProcessInstance/InstanceCounter",
+            #"ProcessInstance/DataFields/Description",
+           # "ProcessInstance/DataFields/Blanket Order",
+           # "ProcessInstance/CurrentStepName",
+           # "ProcessInstance/DataFields/username",
+           # "ProcessInstance/DataFields/Shipping Address",
+            #"ProcessInstance/DataFields/Attention",
+            #"ProcessInstance/DataFields/Address Line",
+            #"ProcessInstance/DataFields/City",
+           # "ProcessInstance/DataFields/State",
+           ## "ProcessInstance/DataFields/Zip Code",
+            #"ProcessInstance/DataFields/Room Floor Suite",
+           # "ProcessInstance/DataFields/External Comments",
+            #"CommitmentType/CommitmentType",
+            #"Company/CompanyId",
+           # "LineItems/CommitmentItem/UnitCost",
+            #"LineItems/CommitmentItem/Amount",
+            #"LineItems/CommitmentItem/Quantity",
+            #"LineItems/CommitmentItem/FundingRuleId",
+           # "LineItems/CommitmentItem/ItemNumber"
+        #],
+       # "Filters":[
+            #{
+                #"Field" : "ProcessInstance/CurrentStepName",
+                #"Operation" : "=",
+                #"Value" : "Python Hold: Send to BW"
+                #}
+               #]
+    #
     #theURL = 'https://api2.e-builder.net/api/v2/CommitmentProcesses/query?processprefix=POREQ'
-    cfg =  get_config()
-    theURL = cfg.hostname + "/api/v2/CommitmentProcesses/query?processprefix=POREQ"
-    print('Getting POREQ data')
-    POREQjson = postTOAPI(theURL, json.dumps(POREQdatafields))['records']
-    return POREQjson
+    #cfg =  get_config()
+    #theURL = cfg.hostname + "/api/v2/CommitmentProcesses/query?processprefix=POREQ"
+    #print('Getting POREQ data')
+   # POREQjson = postTOAPI(theURL, json.dumps(POREQdatafields))['records']
+    #return POREQjson
 
 
 ## Getting Data from JSON files in local cache
@@ -1303,3 +1315,11 @@ def getDataFromCache(module):
 #print(get_Companies_dict2())
 
 #get_ipython().system('jupyter nbconvert --to script ebAPI_lib.ipynb')
+# --- FORCE DISABLE POREQ (override any earlier definitions) ---
+def getPOREQData(*args, **kwargs):
+    print("FORCED SKIP: POREQ disabled")
+    return []
+
+def getPOREQDataNonCostProcess(*args, **kwargs):
+    print("FORCED SKIP: POREQ non-cost disabled")
+    return []

@@ -42,11 +42,18 @@ class eBuilderConfig:
 
 
 def load_config() -> eBuilderConfig:
-    config_path = Path.cwd().parent / "config.ebuilder.json"
-    if not config_path.exists():
-        raise FileNotFoundError(f"Config file not found: {config_path}")
-    if not config_path.is_file():
-        raise IsADirectoryError(f"Config path is not a file: {config_path}")
+    repo_root = Path(__file__).resolve().parent.parent
+    candidates = [Path.cwd() / "config.ebuilder.json", repo_root / "config.ebuilder.json"]
+    config_path = None
+    for candidate in candidates:
+        if candidate.exists() and candidate.is_file():
+            config_path = candidate
+            break
+
+    if config_path is None:
+        raise FileNotFoundError(
+            f"Config file not found. Checked: {candidates[0]} and {candidates[1]}"
+        )
 
     with config_path.open("r", encoding="utf-8") as f:
         try:

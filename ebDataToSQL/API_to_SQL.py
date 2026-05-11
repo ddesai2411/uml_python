@@ -13,7 +13,7 @@ def flatten_json(json_data, parent_key='', sep='_'):
             items.append((re.sub('[^A-Za-z0-9]+', '_', new_key), value))
     return dict(items)
 
-files = ['Projects','ActiveProjects','Budgets','Commitments','CommitmentItems','Invoices','Companies','FundingRules','FundingSources','POREQ']
+files = ['Projects','ActiveProjects','Budgets','Commitments','CommitmentItems','Invoices','Companies','FundingRules','FundingSources']
 
 
 File_Data = {
@@ -26,7 +26,7 @@ File_Data = {
     'Companies':eb.getDataFromCache("Companies"),
     'FundingRules':eb.getDataFromCache("FundingRules"),
     'FundingSources':eb.getDataFromCache("FundingSources"),
-    'POREQ': eb.getDataFromCache("POREQ"),
+    #'POREQ': eb.getDataFromCache("POREQ"),
 
 }
 type_map = {
