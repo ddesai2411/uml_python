@@ -26,7 +26,7 @@ invoices_data = eb.getDataFromCache("Invoices"),
 fundingRules_data = eb.getDataFromCache("FundingRules"),
 companies_data = eb.getDataFromCache("Companies"),
 fundingSources_data = eb.getDataFromCache("FundingSources"),
-POREQ_data = eb.getDataFromCache("POREQ"),
+#POREQ_data = eb.getDataFromCache("POREQ"),
 
 File_Data = {
     'ActiveProjects': active_projects_data,

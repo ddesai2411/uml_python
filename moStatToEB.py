@@ -119,7 +119,11 @@ def getMoStatData(projectName):
             if currStatus == "Active" or currStatus == "TD Active" or currProjName == 'zzTEST Integration' or currProjName == '*TEST - PGB Test':
                 #print (">>>>", currPhase, currPhase[:2])
                 ignoreCounts += 1
-                if currPhase[:2] == "08" or currPhase[:3] == "07A":
+                if currPhase and any(phrase in currPhase for phrase in ("FIS Closeout", "PO Pending", "On Hold")):
+                    ignoreThis = 1
+                    ignoreCounts += 1
+                    print("Skipping phase", currPhase, currFMP)
+                elif currPhase[:2] == "08" or currPhase[:3] == "07A":
                     ignoreThis = 1
                     ignoreCounts += 1
                     #print ("Undefined lead", currFMP, currProjName, currLeadDept, currPM, currPlanner)

@@ -254,7 +254,9 @@ def main():
             if reportable == True and closeout == False:
                 if currStatus == "Active" or currStatus == "TD Active":
                     print (">>>>", currPhase, currPhase[:2])
-                    if currPhase[:2] == "08" or currPhase[:3] == "07A":
+                    if currPhase and any(phrase in currPhase for phrase in ("FIS Closeout", "PO Pending", "On Hold")):
+                        print("Skipping phase", currPhase, currFMP)
+                    elif currPhase[:2] == "08" or currPhase[:3] == "07A":
                         #print "Lead is not defined (TBD or None)"
                         ignoreThis = 1
                         print ("Undefined lead", currFMP, currProjName, currLeadDept, currPM, currPlanner)
