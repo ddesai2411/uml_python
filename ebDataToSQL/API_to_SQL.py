@@ -64,7 +64,8 @@ for name,data in File_Data.items():
     columns_sql = ', '.join(f'{column} {type_map[type(flattened_data[0][column]).__name__]}' for column in columns)
     cursor.execute(f'''IF NOT EXISTS (
         select * from sysobjects where name='{table_name}' and xtype='U'
-        )CREATE TABLE {table_name} ({columns_sql})''')
+        )
+        CREATE TABLE {table_name} ({columns_sql})''')
     print(table_name,'table created')
 
     # Insert data
