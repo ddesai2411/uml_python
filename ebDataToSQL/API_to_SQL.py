@@ -1,5 +1,11 @@
 import json
 import re
+import sys
+from pathlib import Path
+
+root_dir = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(root_dir))
+
 import pyodbc
 import uml_lib.ebAPI_lib as eb
 
@@ -35,11 +41,25 @@ type_map = {
     'str': 'NVARCHAR(MAX)',
     'dict': 'NVARCHAR(MAX)',
     'list': 'NVARCHAR(MAX)',
-    'tuple':'NVARCHAR(MAX)',
+    'tuple': 'NVARCHAR(MAX)',
     'NoneType': 'NVARCHAR(MAX)',
     'bool': 'BIT',
     'bytes': 'VARBINARY(MAX)',
 }
+
+
+def infer_sql_type(value):
+    if value is None:
+        return 'NVARCHAR(MAX)'
+    return type_map.get(type(value).__name__, 'NVARCHAR(MAX)')
+
+
+def infer_column_type(column, records):
+    for record in records:
+        if column in record and record[column] is not None:
+            return infer_sql_type(record[column])
+    return 'NVARCHAR(MAX)'
+
 
 # Connect to SQL Server
 conn = pyodbc.connect('DRIVER={SQL Server};SERVER=arcgis-sql-02.fs.uml.edu;DATABASE=eBuilder;')
@@ -54,14 +74,21 @@ for name,data in File_Data.items():
     # Flatten the JSON data
     flattened_data = [flatten_json(record) for record in data]
 
+    if not flattened_data:
+        print(f'Skipping {table_name}: no records found in cache')
+        continue
+
     for record in flattened_data:
      for k, v in record.items():
         if isinstance(v, (dict, list, tuple)):
             record[k] = json.dumps(v)
     
     columns = list(set([column for record in flattened_data for column in record.keys()]))
+    if not columns:
+        print(f'Skipping {table_name}: no columns generated after flattening')
+        continue
 
-    columns_sql = ', '.join(f'{column} {type_map[type(flattened_data[0][column]).__name__]}' for column in columns)
+    columns_sql = ', '.join(f'{column} {infer_column_type(column, flattened_data)}' for column in columns)
     cursor.execute(f'''IF NOT EXISTS (
         select * from sysobjects where name='{table_name}' and xtype='U'
         )
