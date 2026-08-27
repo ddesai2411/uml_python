@@ -123,9 +123,9 @@ def getMoStatData(projectName):
                     ignoreThis = 1
                     ignoreCounts += 1
                     print("Skipping phase", currPhase, currFMP)
-                elif currPhase[:2] == "08" or currPhase[:3] == "07A":
-                    ignoreThis = 1
-                    ignoreCounts += 1
+                #elif currPhase[:2] == "08" or currPhase[:3] == "07A":
+                    #ignoreThis = 1
+                    #ignoreCounts += 1
                     #print ("Undefined lead", currFMP, currProjName, currLeadDept, currPM, currPlanner)
                     #print "Not 08, 07A", currPhase
                 else:
