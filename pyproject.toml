@@ -19,6 +19,11 @@ dependencies = [
     "xmltodict",
 ]
 
+[project.optional-dependencies]
+test = [
+    "pytest",
+]
+
 [tool.setuptools.packages.find]
 include = [
     "bw2eb*",
@@ -28,3 +33,6 @@ include = [
     "uml_lib*",
     "workorder*",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
