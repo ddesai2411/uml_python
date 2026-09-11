@@ -13,6 +13,7 @@ import eb.ebInv.write_Invoice_Cost_line as wINC
 #import uml_python.ebInv.write_Invoice_Process_line as wINP
 import uml_lib.ebAPI_lib as ebAPI
 import eb.ebInv.invoice_updates as invoice_updates
+import CommitmentChangeOrders.co_builder as co_builder
 
 
 def debugPrint(theStr):
@@ -68,6 +69,10 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     ebInvoicesStatus = ebAPI.get_Invoices_dict()
     paidUpdates = []
     paidUpdatesSeen = set()
+    # Commitment change orders: one per invoice whose billed total exceeds its
+    # commitment (e.g. shipping pushed it over the PO amount).
+    changeOrders = []
+    changeOrdersSeen = set()
     lineType = ""
     lineCount = 0
     firstProcess = False    # flags to create Excel
@@ -82,6 +87,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
               "Payable":0,
               "AlreadyInEB": 0,
               "PaidUpdate":0,
+              "ChangeOrder":0,
               "Other":0,
               "nonEB":0,
               }
@@ -161,6 +167,25 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                             currFundRule = "CHECK FUNDING RULE"
                     #print( "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Current funding rule", currFundRule, type(currFundRule))
                     wINC.write_Invoice_Cost_line(r, activePOs, currFundRule, "CHECK_THIS", costWS)
+
+                    # Commitment change order: if this invoice's billed total
+                    # exceeds the commitment (e.g. shipping pushed it over the
+                    # PO), queue one CO per invoice to raise the commitment.
+                    coInvNo = r["Invoice No"]
+                    if coInvNo not in changeOrdersSeen:
+                        changeOrdersSeen.add(coInvNo)
+                        coPlan = co_builder.plan_commitment_change(
+                            r.get("Invoice Total"),
+                            activePOs[r['PO No']]["Value"],
+                            r['PO No'],
+                            activePOs[r['PO No']],
+                            coInvNo,
+                            invoice_already_in_eb=False,
+                        )
+                        if coPlan["needs_co"]:
+                            changeOrders.append(coPlan["co"])
+                            counts["ChangeOrder"] += 1
+                            print("Change order queued:", r['PO No'], "delta", coPlan["delta"])
                 # REWORK THIS: WE ARE CHECKING acivePOs twice. I can't get elif working
                 
 
@@ -189,6 +214,8 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     dry_run = bool(getattr(ebAPI.get_config(), "dry_run", True))
     for payload in paidUpdates:
         invoice_updates.post_invoice_update(payload, dry_run=dry_run)
+    for co in changeOrders:
+        co_builder.post_commitment_co(co, dry_run=dry_run)
 
     print("Done reading CSV", theCSV)
 
@@ -201,6 +228,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     retVal = "Invoice Cost Imports: " + str(counts["EBcost"])
     retVal += "\nInvoice Process Imports (currently not used): " + str(counts["EBprocess"])
     retVal += "\nPayable->Paid Updates: " + str(counts["PaidUpdate"])
+    retVal += "\nCommitment Change Orders: " + str(counts["ChangeOrder"])
     #uname = getpass.getuser()
     #print currStamp
 
