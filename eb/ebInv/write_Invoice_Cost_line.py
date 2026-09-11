@@ -1,5 +1,8 @@
 # March 24, 2022: Buyways changes included field names for invoice report - see PO line number, tax 1 and tax 2
 
+import eb.ebInv.invoice_amount as invoice_amount
+
+
 def debugPrint(theStr):
     #print "Debug print:", theStr
     ignoreThis = 0
@@ -68,24 +71,13 @@ def write_Invoice_Cost_line(POrow, activePOs, fundRule, multiLine, ws):
 
     # 6: Invoice Item Amount
     outCell = ws.cell(row=write_Invoice_Cost_line.counter,column=6)
-    """
-    # Check with FM Procurement: should we ignore Tax?
-    if (int(POrow["PO Line No"]) == 1): # so we don't add these more than once -- BW has them at the header
-        lineTotal += float(POrow["Tax1 Charge"]) + float(POrow["Tax2 Charge"])
-        lineTotal += float(POrow["Shipping Charge"]) + float(POrow["Handling Charge"])
-        print "SHIPPING!!!???", POrow["Shipping Charge"]
-        # check true/false on Early Payment discount?
-        if POrow["Apply Early Payment Discount"] == "TRUE" or POrow["Apply Early Payment Discount"] == "true":
-            #if int(float(POrow["Early Payment Discount"])) > 0:
-            lineTotal -= float(POrow["Early Payment Discount"])
-        #else:
-            #lineTotal += float(POrow["Early Payment Discount"])
-    """
-    # 230703 CHECK THIS: HOW DO WE KNOW MULTILINE? VOUCHER ID?
-    if multiLine:
-        lineTotal = POrow["Invoice Line Extended Price"]
-    else:
-        lineTotal = POrow["Invoice Total"]
+    # Corrected billed amount for this line = line subtotal + shipping + handling
+    # + tax1 + tax2 - discounts. e-Builder has no shipping field, so shipping and
+    # discount are folded directly into the amount. Byways allocates these charges
+    # per line, so summed across the invoice's lines this equals Invoice Total.
+    # (Replaces the old multiLine="CHECK_THIS" placeholder that always used the
+    # bare subtotal. See eb/ebInv/invoice_amount.py.)
+    lineTotal = invoice_amount.compute_invoice_line_amount(POrow)
     outCell.value = str(lineTotal)
 
     # 7: Commitment Item number
