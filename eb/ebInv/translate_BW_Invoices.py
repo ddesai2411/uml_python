@@ -73,6 +73,8 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     # commitment (e.g. shipping pushed it over the PO amount).
     changeOrders = []
     changeOrdersSeen = set()
+    # <invoice>-1 actual-cost lines for the CO-after-invoice workflow.
+    followupLines = []
     lineType = ""
     lineCount = 0
     firstProcess = False    # flags to create Excel
@@ -88,6 +90,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
               "AlreadyInEB": 0,
               "PaidUpdate":0,
               "ChangeOrder":0,
+              "FollowupLine":0,
               "Other":0,
               "nonEB":0,
               }
@@ -121,6 +124,29 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                 else:
                     print("Already in EB", r["Invoice No"])
                     counts["AlreadyInEB"] += 1
+
+                # CO-after-invoice workflow: the invoice was imported before
+                # Byways added shipping/discount. If the now-billed total exceeds
+                # the commitment, raise the commitment (CO) AND add a <invoice>-1
+                # actual-cost line for the delta. One per invoice.
+                coInvNo = r["Invoice No"]
+                if coInvNo not in changeOrdersSeen and r['PO No'] in activePOs:
+                    changeOrdersSeen.add(coInvNo)
+                    coPlan = co_builder.plan_commitment_change(
+                        r.get("Invoice Total"),
+                        activePOs[r['PO No']]["Value"],
+                        r['PO No'],
+                        activePOs[r['PO No']],
+                        coInvNo,
+                        invoice_already_in_eb=True,
+                    )
+                    if coPlan["needs_co"]:
+                        changeOrders.append(coPlan["co"])
+                        followupLines.append(coPlan["followup_line"])
+                        counts["ChangeOrder"] += 1
+                        counts["FollowupLine"] += 1
+                        print("CO + follow-up line queued (after invoice):",
+                              r['PO No'], "delta", coPlan["delta"])
             elif r['PO No'] in activePOs and activePOs[r['PO No']]["CommitmentType"][0] != '2': # what about PO reqs? If origin code is LEB, check custom field? or always custom field?
                 print("Not already in EB:", r["Invoice No"])
                 # 230630: Check commitment type (or filter out type 2s?)
@@ -216,6 +242,8 @@ def translate_Buyways_Invoices(theCSV, currStamp):
         invoice_updates.post_invoice_update(payload, dry_run=dry_run)
     for co in changeOrders:
         co_builder.post_commitment_co(co, dry_run=dry_run)
+    for line in followupLines:
+        co_builder.post_followup_cost_line(line, dry_run=dry_run)
 
     print("Done reading CSV", theCSV)
 
@@ -229,6 +257,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     retVal += "\nInvoice Process Imports (currently not used): " + str(counts["EBprocess"])
     retVal += "\nPayable->Paid Updates: " + str(counts["PaidUpdate"])
     retVal += "\nCommitment Change Orders: " + str(counts["ChangeOrder"])
+    retVal += "\nFollow-up Cost Lines (-1): " + str(counts["FollowupLine"])
     #uname = getpass.getuser()
     #print currStamp
 

@@ -132,3 +132,21 @@ def post_commitment_co(payload, dry_run=True):
     url = f"{hostname}/api/v2/noncostProcesses?processprefix=CO"  # unverified (no sandbox)
     response = ebAPI.postTOAPI(url, payload)
     return {"dry_run": False, "posted": True, "payload": payload, "response": response}
+
+
+def post_followup_cost_line(payload, dry_run=True):
+    """Post the ``<invoice>-1`` actual-cost line for the CO-after-invoice workflow.
+
+    Defaults to dry_run (logs, posts nothing). Same no-sandbox caveat as
+    ``post_commitment_co``: the endpoint is unverified and isolated here.
+    """
+    if dry_run:
+        print("[DRY RUN] follow-up cost line:", payload)
+        return {"dry_run": True, "posted": False, "payload": payload}
+
+    import uml_lib.ebAPI_lib as ebAPI
+
+    hostname = str(getattr(ebAPI.get_config(), "hostname", "")).rstrip("/")
+    url = f"{hostname}/api/v2/invoices/cost"  # unverified (no sandbox)
+    response = ebAPI.postTOAPI(url, payload)
+    return {"dry_run": False, "posted": True, "payload": payload, "response": response}

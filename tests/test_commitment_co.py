@@ -147,3 +147,11 @@ def test_post_dry_run_posts_nothing():
     assert result["posted"] is False
     assert result["dry_run"] is True
     assert result["payload"] == co
+
+
+def test_post_followup_cost_line_dry_run_posts_nothing():
+    line = co_builder.build_followup_cost_line("L1", PO_INFO, Decimal("10.00"), "X1")
+    result = co_builder.post_followup_cost_line(line, dry_run=True)
+    assert result["posted"] is False
+    assert result["dry_run"] is True
+    assert result["payload"] == line

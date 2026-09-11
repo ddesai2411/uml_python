@@ -39,7 +39,9 @@ that may not exist). Create a fresh one with uv:
 ```bash
 cd C:/git/UMASS/uml_python
 uv venv .venv
-uv pip install --python .venv/Scripts/python.exe pytest
+# pytest for the suite; pandas + openpyxl are needed by the integration test,
+# which imports the real translator module.
+uv pip install --python .venv/Scripts/python.exe pytest pandas openpyxl
 ```
 
 ## Configuration
@@ -78,6 +80,7 @@ Keys: `hostname`, `username`, `password`, `data_cache_dir`, `daily_imports_dir`,
 | #1 Payable→Paid detection, payload, dedup, dry-run | [`tests/test_paid_status.py`](../../tests/test_paid_status.py) |
 | #2 Shipping/discount amount, money parsing, multi-line reconciliation | [`tests/test_invoice_amount.py`](../../tests/test_invoice_amount.py) |
 | #3 Commitment change order delta/threshold, payloads, both workflows, dry-run | [`tests/test_commitment_co.py`](../../tests/test_commitment_co.py) |
+| #3 CO-after-invoice wiring (CO + `<invoice>-1` line end to end) | [`tests/test_translate_wiring.py`](../../tests/test_translate_wiring.py) |
 | Config dry-run safety default | [`tests/test_config.py`](../../tests/test_config.py) |
 
 ## Known caveats
@@ -87,7 +90,8 @@ Keys: `hostname`, `username`, `password`, `data_cache_dir`, `daily_imports_dir`,
   edge cases to catch in the dry-run review.
 - **`Invoice Discount`** was zero across the sample export; the negative-discount path
   is coded to the stated convention but is unproven on real data.
-- **CO-after-invoice follow-up line** (`<invoice>-1`) is built and tested but not yet
-  wired into the already-in-EB branch; the CO-before-invoice path is wired.
+- **Both CO workflows are wired:** CO-before-invoice (new invoice, corrected amount) and
+  CO-after-invoice (already-imported invoice, shipping added later → CO + `<invoice>-1`
+  cost line). The `<invoice>-1` line and CO are posted through dry-run-gated wrappers.
 - **Secret in history:** `config.ebuilder.json` was tracked previously, so its password
   is still in git history. It is now untracked and ignored — rotate the API key.
