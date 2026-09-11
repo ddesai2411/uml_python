@@ -12,6 +12,10 @@ class eBuilderConfig:
     daily_imports_dir: Optional[str] = None
     from_bw_dir: Optional[str] = None
     fmp_output_file: Optional[str] = None
+    # When True (the default), the invoice/CO writers log what they WOULD post to
+    # e-Builder but do not actually POST. Set "dry_run": false to go live. Defaults
+    # to True so a missing key never posts to production by accident.
+    dry_run: bool = True
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "eBuilderConfig":
@@ -30,6 +34,9 @@ class eBuilderConfig:
             if key in data and data[key] is not None and not isinstance(data[key], str):
                 raise TypeError(f"Config key '{key}' must be a string or null")
 
+        if "dry_run" in data and not isinstance(data["dry_run"], bool):
+            raise TypeError("Config key 'dry_run' must be true or false")
+
         return eBuilderConfig(
             hostname=data["hostname"].strip(),
             username=data["username"].strip(),
@@ -38,6 +45,7 @@ class eBuilderConfig:
             daily_imports_dir=data.get("daily_imports_dir"),
             from_bw_dir=data.get("from_bw_dir"),
             fmp_output_file=data.get("fmp_output_file"),
+            dry_run=data.get("dry_run", True),
         )
 
 

@@ -211,7 +211,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     # nothing) unless config.ebuilder.json sets "dry_run": false. There is no
     # test environment, so dry-run + unit tests are the safety gates before a
     # live production run.
-    dry_run = bool(getattr(ebAPI.get_config(), "dry_run", True))
+    dry_run = ebAPI.get_dry_run()
     for payload in paidUpdates:
         invoice_updates.post_invoice_update(payload, dry_run=dry_run)
     for co in changeOrders:

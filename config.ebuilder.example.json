@@ -1,0 +1,8 @@
+{
+  "hostname": "https://api2-us2.e-builder.net",
+  "username": "you@example.com",
+  "password": "REPLACE_WITH_API_KEY_DO_NOT_COMMIT",
+  "data_cache_dir": "C:\\path\\to\\ebData",
+  "daily_imports_dir": "C:\\path\\to\\dailyImports",
+  "dry_run": true
+}

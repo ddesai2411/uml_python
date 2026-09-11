@@ -1,3 +1,7 @@
+# Local secrets / config (contains the e-Builder API password). Use
+# config.ebuilder.example.json as the committed template.
+config.ebuilder.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

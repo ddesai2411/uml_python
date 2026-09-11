@@ -89,6 +89,13 @@ def get_config() -> eBuilderConfig:
     return _APIConfig
 
 
+def get_dry_run() -> bool:
+    """Whether the invoice/CO writers should only log (True) or actually POST to
+    e-Builder (False). Defaults to True so a missing key never posts by accident.
+    """
+    return bool(getattr(get_config(), "dry_run", True))
+
+
 def get_cache_dir(create: bool = False) -> Path:
     cfg = get_config()
     cache_dir = resolve_config_path(cfg.data_cache_dir, "data_cache_dir")
