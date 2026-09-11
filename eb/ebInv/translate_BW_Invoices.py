@@ -12,6 +12,7 @@ import uml_lib.ebCostLib as ebCost
 import eb.ebInv.write_Invoice_Cost_line as wINC
 #import uml_python.ebInv.write_Invoice_Process_line as wINP
 import uml_lib.ebAPI_lib as ebAPI
+import eb.ebInv.invoice_updates as invoice_updates
 
 
 def debugPrint(theStr):
@@ -62,6 +63,11 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     ebProjs = ebAPI.get_active_Projects()
     activePOs = ebAPI.get_activePOs(ebProjs)
     ebInvoices = ebAPI.get_Invoices()
+    # Status per already-imported invoice, for the Payable->Paid update path.
+    # Kept separate from the membership check above so dedup behavior is unchanged.
+    ebInvoicesStatus = ebAPI.get_Invoices_dict()
+    paidUpdates = []
+    paidUpdatesSeen = set()
     lineType = ""
     lineCount = 0
     firstProcess = False    # flags to create Excel
@@ -75,6 +81,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
               "InProcess": 0,
               "Payable":0,
               "AlreadyInEB": 0,
+              "PaidUpdate":0,
               "Other":0,
               "nonEB":0,
               }
@@ -92,8 +99,22 @@ def translate_Buyways_Invoices(theCSV, currStamp):
             #print "Line number: ", lineCount
             # print(">>>>",r["Invoice No"])
             if r["Invoice No"] in ebInvoices:
-                print("Already in EB", r["Invoice No"])
-                counts["AlreadyInEB"] += 1
+                # Already imported. If Byways now says Paid but EB still shows
+                # Approved, collect a Payable->Paid update (one per invoice).
+                if invoice_updates.should_update_to_paid(r, ebInvoicesStatus):
+                    invNo = r["Invoice No"]
+                    if invNo not in paidUpdatesSeen:
+                        if r['PO No'] in activePOs:
+                            fmp = activePOs[r['PO No']]["FMP"]
+                        else:
+                            fmp = r.get("FMP Number", "")
+                        paidUpdates.append(invoice_updates.build_paid_update(r, fmp))
+                        paidUpdatesSeen.add(invNo)
+                        counts["PaidUpdate"] += 1
+                        print("Payable->Paid update queued:", invNo)
+                else:
+                    print("Already in EB", r["Invoice No"])
+                    counts["AlreadyInEB"] += 1
             elif r['PO No'] in activePOs and activePOs[r['PO No']]["CommitmentType"][0] != '2': # what about PO reqs? If origin code is LEB, check custom field? or always custom field?
                 print("Not already in EB:", r["Invoice No"])
                 # 230630: Check commitment type (or filter out type 2s?)
@@ -161,6 +182,14 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                 counts[lineType]+=1
     logfile.close()
 
+    # Push Payable->Paid status updates. Defaults to dry-run (logs only, posts
+    # nothing) unless config.ebuilder.json sets "dry_run": false. There is no
+    # test environment, so dry-run + unit tests are the safety gates before a
+    # live production run.
+    dry_run = bool(getattr(ebAPI.get_config(), "dry_run", True))
+    for payload in paidUpdates:
+        invoice_updates.post_invoice_update(payload, dry_run=dry_run)
+
     print("Done reading CSV", theCSV)
 
     print('-----------')
@@ -171,6 +200,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
 
     retVal = "Invoice Cost Imports: " + str(counts["EBcost"])
     retVal += "\nInvoice Process Imports (currently not used): " + str(counts["EBprocess"])
+    retVal += "\nPayable->Paid Updates: " + str(counts["PaidUpdate"])
     #uname = getpass.getuser()
     #print currStamp
 
