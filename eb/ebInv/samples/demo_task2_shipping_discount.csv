@@ -1,0 +1,5 @@
+Invoice No,PO No,Invoice Status,Invoice Line Extended Price,Invoice Total,Shipping Charge,Handling Charge,Tax1 Charge,Tax2 Charge,Invoice Discount,Early Payment Discount,Apply Early Payment Discount
+X3321426,L001944676,Payable,562.00,588.24,15.00,11.24,0.00,0.00,0.00,0.00,true
+X3321423,L001936424,Payable,94.00,213.69,20.30,0.00,0.00,0.00,0.00,0.00,true
+X3321423,L001936424,Payable,81.74,213.69,17.65,0.00,0.00,0.00,0.00,0.00,true
+X3320541,L001944277,Payable,77.48,86.76,10.83,0.00,0.00,0.00,0.00,1.55,true
