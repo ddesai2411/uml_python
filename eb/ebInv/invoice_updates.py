@@ -48,6 +48,10 @@ def build_paid_update(bw_row, fmp):
     caller (looked up from the PO, same as the cost-import path does), keeping
     this function pure.
     """
+    # get_active_Projects stores the FMP as utf-8 bytes; decode so the payload is
+    # JSON-serializable (json.dumps cannot serialize bytes) for the live POST.
+    if isinstance(fmp, bytes):
+        fmp = fmp.decode("utf-8", "replace")
     return {
         "FMP Number": fmp,
         "Status": EB_STATUS_PAID,

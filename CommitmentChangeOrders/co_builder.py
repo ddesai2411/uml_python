@@ -36,6 +36,15 @@ def _amt(value):
     return parse_money(value)
 
 
+def _text(value):
+    """Coerce a value to str for JSON payloads. get_active_Projects stores the
+    FMP as utf-8 bytes, which json.dumps cannot serialize; decode it here so the
+    live POST does not crash."""
+    if isinstance(value, bytes):
+        return value.decode("utf-8", "replace")
+    return value
+
+
 def commitment_delta(billed_total, commitment_amount):
     """billed - commitment. Positive means the commitment must be raised."""
     return _amt(billed_total) - _amt(commitment_amount)
@@ -69,7 +78,7 @@ def build_commitment_co(po_no, po_info, delta, invoice_no, commitment_amount=Non
     co = {
         "Commitment Number": po_no,
         "Commitment ID": po_info.get("PO_ID"),
-        "FMP Number": po_info.get("FMP"),
+        "FMP Number": _text(po_info.get("FMP")),
         "Company Name": po_info.get("Vendor"),
         "Change Amount": str(delta),
         "Description": f"Shipping/discount adjustment for invoice {invoice_no}",
@@ -84,7 +93,7 @@ def build_followup_cost_line(po_no, po_info, delta, invoice_no):
     """Build the ``<invoice>-1`` actual-cost line for the CO-after-invoice flow."""
     po_info = po_info or {}
     return {
-        "FMP Number": po_info.get("FMP"),
+        "FMP Number": _text(po_info.get("FMP")),
         "Invoice Number": followup_cost_line_invoice_number(invoice_no),
         "Commitment Number": po_no,
         "Invoice Item Amount": str(_amt(delta)),
