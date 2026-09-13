@@ -233,13 +233,29 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                 counts[lineType]+=1
     logfile.close()
 
-    # Push Payable->Paid status updates. Defaults to dry-run (logs only, posts
-    # nothing) unless config.ebuilder.json sets "dry_run": false. There is no
-    # test environment, so dry-run + unit tests are the safety gates before a
-    # live production run.
+    # Output file base (daily imports dir) - needed for the workbook writers below.
+    daily_imports_dir = ebAPI.get_daily_imports_dir(create=True)
+    ofilebase = str(daily_imports_dir / f"_CSV_{currStamp}_")
+
+    # Payable->Paid: write an e-Builder "Invoice Update" import workbook (the
+    # supported Data Exchange path; a live run proved there is no REST endpoint
+    # for invoice status updates - POST /invoices/update returns 404). dry_run
+    # logs the rows without writing the file.
     dry_run = ebAPI.get_dry_run()
-    for payload in paidUpdates:
-        invoice_updates.post_invoice_update(payload, dry_run=dry_run)
+    updateFile = "No Invoice Updates"
+    if paidUpdates:
+        if dry_run:
+            for u in paidUpdates:
+                print("[DRY RUN] invoice paid-update (would write to workbook):", u)
+        else:
+            updateFile = ofilebase + "InvoiceUpdateImport.xlsx"
+            invoice_updates.write_paid_update_workbook(paidUpdates, updateFile)
+            print("Wrote Invoice Update import:", updateFile)
+
+    # Commitment change orders (req #2): still routed through the REST helpers,
+    # which are dry-run gated. NOTE: like the paid-update above, these REST
+    # endpoints are unverified and will need the same pivot to a Data Exchange
+    # import before a live req #2 run.
     for co in changeOrders:
         co_builder.post_commitment_co(co, dry_run=dry_run)
     for line in followupLines:
@@ -261,12 +277,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     #uname = getpass.getuser()
     #print currStamp
 
-    #ofilebase = "DataFiles/" + currStamp + "_"
-    # ofilebase = "B:\\dailyImports\\_CSV_" + currStamp + "_"
-    # Changed to use config.ebuilder.json daily_imports_dir so developers can
-    # repoint the old B:\dailyImports export folder without source edits.
-    daily_imports_dir = ebAPI.get_daily_imports_dir(create=True)
-    ofilebase = str(daily_imports_dir / f"_CSV_{currStamp}_")
+    # ofilebase / daily_imports_dir were computed above (before the workbook writers).
     # INVhtml = "B:\\dailyImports\\_InvoiceDataTotals.html"
 
     #ofilebase = "/Users/kysgattu/FIS/BDrive/dailyImports/_CSV_" + currStamp + "_"
@@ -284,11 +295,11 @@ def translate_Buyways_Invoices(theCSV, currStamp):
         processXL.save(ofile)
         costFile = True
     if costFile:
-        retval = {'Stats': counts, 'ImportFile': ofile}
+        retval = {'Stats': counts, 'ImportFile': ofile, 'UpdateFile': updateFile}
         return retval
         # return ofile
     else:
-        retVal = {'Stats':counts, 'ImportFile': 'No EBCost Invoices'}
+        retVal = {'Stats':counts, 'ImportFile': 'No EBCost Invoices', 'UpdateFile': updateFile}
         # print(retVal)
         return retVal
         # return 'No EBCost POs'

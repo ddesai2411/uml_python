@@ -85,15 +85,43 @@ def collect_paid_updates(rows, eb_invoices, fmp_lookup=None):
     return updates
 
 
+def write_paid_update_workbook(updates, out_path):
+    """Write collected Payable->Paid updates to an e-Builder "Invoice Update"
+    import workbook and save it to ``out_path``. Returns ``out_path``, or ``None``
+    when there are no updates.
+
+    This is the e-Builder-supported write path. A live run confirmed there is NO
+    REST endpoint for invoice status updates (POST /api/v2/invoices/update returns
+    404); invoice status is changed by importing this workbook through Data
+    Exchange, the same mechanism the cost-line import already uses.
+
+    Columns come from ``ebCostLib.updateInvoiceHeaders`` (FMP Number, Status,
+    Invoice Number, Company Name, Company Number, Date Paid); the payload keys
+    from ``build_paid_update`` already match those header names.
+    """
+    if not updates:
+        return None
+    # Lazy import so the pure functions above stay import-light for unit tests.
+    import uml_lib.ebCostLib as ebCost
+
+    wb, ws = ebCost.create_Excel()
+    ebCost.write_ExcelHeaders(wb, ws, "updateInvoice")
+    headers = ebCost.updateInvoiceHeaders  # {column_index: header_name}
+    for i, payload in enumerate(updates, start=2):  # row 1 is the header
+        for col, name in headers.items():
+            ws.cell(row=i, column=col).value = payload.get(name)
+    wb.save(out_path)
+    return out_path
+
+
 def post_invoice_update(payload, dry_run=True):
-    """Send one Paid update to e-Builder.
+    """DEPRECATED write path. A live sandbox run proved e-Builder has no
+    ``/api/v2/invoices/update`` REST endpoint (HTTP 404), so status updates are
+    written via :func:`write_paid_update_workbook` (Data Exchange import) instead.
+    Retained only for the dry-run unit test; do not call with ``dry_run=False``.
 
     Defaults to ``dry_run``: no network call, just returns the payload it *would*
-    post. With ``dry_run=False`` it POSTs to the e-Builder API.
-
-    NOTE: there is no sandbox, so the endpoint/shape below is built blind from
-    the e-Builder docs and is unverified until The User's first live run. Keep
-    the POST isolated here.
+    post.
     """
     if dry_run:
         print("[DRY RUN] invoice paid-update:", payload)
