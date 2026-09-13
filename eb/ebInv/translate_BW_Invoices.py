@@ -66,7 +66,9 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     ebInvoices = ebAPI.get_Invoices()
     # Status per already-imported invoice, for the Payable->Paid update path.
     # Kept separate from the membership check above so dedup behavior is unchanged.
-    ebInvoicesStatus = ebAPI.get_Invoices_dict()
+    # Req #1: EB invoice lookup keyed by Buyways Invoice No (Voucher ID), carrying
+    # the native invoiceNumber/companyNumber/amount/project needed for StatusUpdate.
+    ebInvoicesStatus = ebAPI.get_Invoices_for_paid_update()
     paidUpdates = []
     paidUpdatesSeen = set()
     # Commitment change orders: one per invoice whose billed total exceeds its
@@ -113,11 +115,11 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                 if invoice_updates.should_update_to_paid(r, ebInvoicesStatus):
                     invNo = r["Invoice No"]
                     if invNo not in paidUpdatesSeen:
-                        if r['PO No'] in activePOs:
-                            fmp = activePOs[r['PO No']]["FMP"]
-                        else:
-                            fmp = r.get("FMP Number", "")
-                        paidUpdates.append(invoice_updates.build_paid_update(r, fmp))
+                        # Payload fields come from the EB invoice record (native
+                        # invoiceNumber, companyNumber, amount, project) + the
+                        # Byways Paid Date.
+                        paidUpdates.append(
+                            invoice_updates.build_paid_update(r, ebInvoicesStatus[invNo]))
                         paidUpdatesSeen.add(invNo)
                         counts["PaidUpdate"] += 1
                         print("Payable->Paid update queued:", invNo)
@@ -237,20 +239,12 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     daily_imports_dir = ebAPI.get_daily_imports_dir(create=True)
     ofilebase = str(daily_imports_dir / f"_CSV_{currStamp}_")
 
-    # Payable->Paid: write an e-Builder "Invoice Update" import workbook (the
-    # supported Data Exchange path; a live run proved there is no REST endpoint
-    # for invoice status updates - POST /invoices/update returns 404). dry_run
-    # logs the rows without writing the file.
+    # Payable->Paid (req #1): record the payment via POST /api/v2/Invoices/StatusUpdate
+    # (the "Update Invoice Status" batch process). Verified live: it flips the invoice
+    # to Paid and books actualsPaid. dry_run logs the payloads and posts nothing.
     dry_run = ebAPI.get_dry_run()
-    updateFile = "No Invoice Updates"
-    if paidUpdates:
-        if dry_run:
-            for u in paidUpdates:
-                print("[DRY RUN] invoice paid-update (would write to workbook):", u)
-        else:
-            updateFile = ofilebase + "InvoiceUpdateImport.xlsx"
-            invoice_updates.write_paid_update_workbook(paidUpdates, updateFile)
-            print("Wrote Invoice Update import:", updateFile)
+    for payload in paidUpdates:
+        invoice_updates.post_status_update(payload, dry_run=dry_run)
 
     # Commitment change orders (req #2): still routed through the REST helpers,
     # which are dry-run gated. NOTE: like the paid-update above, these REST
@@ -294,12 +288,14 @@ def translate_Buyways_Invoices(theCSV, currStamp):
         ofile = ofilebase + "InvoiceProcessImport.xlsx"
         processXL.save(ofile)
         costFile = True
+    # Req #1 Payable->Paid updates are POSTed to Invoices/StatusUpdate above (not a
+    # file); count is in counts["PaidUpdate"].
     if costFile:
-        retval = {'Stats': counts, 'ImportFile': ofile, 'UpdateFile': updateFile}
+        retval = {'Stats': counts, 'ImportFile': ofile, 'PaidUpdates': counts["PaidUpdate"]}
         return retval
         # return ofile
     else:
-        retVal = {'Stats':counts, 'ImportFile': 'No EBCost Invoices', 'UpdateFile': updateFile}
+        retVal = {'Stats':counts, 'ImportFile': 'No EBCost Invoices', 'PaidUpdates': counts["PaidUpdate"]}
         # print(retVal)
         return retVal
         # return 'No EBCost POs'

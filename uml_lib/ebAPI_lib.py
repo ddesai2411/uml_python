@@ -867,6 +867,39 @@ def isInvoiceInEB(voucherID, ebInvoices):
             break
     return retVal
 
+def get_Invoices_for_paid_update():
+    """Lookup keyed by Buyways Invoice No (the EB "Voucher ID" custom field) with
+    the fields needed to POST /api/v2/Invoices/StatusUpdate (business req #1):
+
+        { voucher_id: {"Status", "InvoiceNumber", "CompanyNumber", "Amount",
+                       "ProjectName"} }
+
+    - Status         : current EB status (Approved/Paid/...), for the transition test.
+    - InvoiceNumber  : EB NATIVE invoice number (StatusUpdate matches on this, not
+                       the Buyways number).
+    - CompanyNumber  : EB company number (required by StatusUpdate), mapped from the
+                       invoice's companyId via the Companies cache.
+    - Amount         : invoiceAmount, used as amountPaid (invoice paid in full).
+    - ProjectName    : the project name (options.projectIdentifier = "ProjectName").
+    """
+    invoice_data = getDataFromCache("Invoices")
+    companies = getDataFromCache("Companies")
+    projects = getDataFromCache("ActiveProjects")
+    comp_num = {c.get("companyId"): c.get("companyNumber") for c in companies if c.get("companyId")}
+    proj_name = {p.get("projectId"): p.get("name") for p in projects}
+    out = {}
+    for r in invoice_data:
+        vid = r.get("Voucher ID")
+        if vid is not None and str(vid)[:1] == "X":
+            out[vid] = {
+                "Status": r.get("status"),
+                "InvoiceNumber": r.get("invoiceNumber"),
+                "CompanyNumber": comp_num.get(r.get("companyId")),
+                "Amount": r.get("invoiceAmount"),
+                "ProjectName": proj_name.get(r.get("projectId")),
+            }
+    return out
+
 def get_Invoices_dict():
     # FILTER FOR ACTIVE PROJECTS ONLY!
     # TURN RETURN STATEMENT BACK ON: CHECK IT

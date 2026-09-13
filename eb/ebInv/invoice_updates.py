@@ -2,19 +2,27 @@
 
 Byways brings invoices into e-Builder while their status is "Payable" (imported
 to e-Builder as "Approved"). When Byways later flips the SAME invoice to "Paid",
-the existing translator skips it as already-in-EB, so today The User changes the
-e-Builder status by hand. This module decides which already-imported invoices now
-need to move to Paid and builds the update payload for each.
+the existing translator skips it as already-in-EB, so today The User records the
+payment by hand in the e-Builder UI. This module decides which already-imported
+invoices now need to move to Paid and builds the update for each.
 
-Design for a no-test-environment world:
+MECHANISM (confirmed live in the sandbox, 2026-09-13):
+"Paid" in e-Builder is a recorded PAYMENT (the commitment item's actualsPaid goes
+from 0 to the invoice amount, and the invoice's datePaid is set). The only thing
+that produces that on an EXISTING invoice is the "Update Invoice Status" batch
+process, exposed as POST /api/v2/Invoices/StatusUpdate. It UPDATES the invoice
+(no create/collision, no workflow process). The process/import-create endpoints
+cannot set Paid.
+
+The API matches on the e-Builder NATIVE invoice number (the Buyways Invoice No
+lives in the "Voucher ID" custom field), so the payload fields come from the EB
+invoice record (see ebAPI.get_Invoices_for_paid_update) plus the Byways Paid Date.
+
+Design:
 - ``should_update_to_paid``, ``build_paid_update`` and ``collect_paid_updates``
-  are PURE (no I/O), so every business rule is unit-testable without e-Builder,
-  a network, or a sandbox.
-- ``post_invoice_update`` is the only side-effecting function. It defaults to a
-  dry run (logs the payload, posts nothing) so nothing reaches production without
-  an explicit opt-in. Because there is no sandbox to validate against, the real
-  POST endpoint is isolated in this one function -- a wrong URL/shape is a
-  one-line fix, not a rework.
+  are PURE (no I/O), unit-testable without e-Builder or a network.
+- ``post_status_update`` is the only side-effecting function; it defaults to a
+  dry run (logs, posts nothing) and isolates the POST in one place.
 """
 
 # e-Builder (EB) side statuses
@@ -29,8 +37,8 @@ def should_update_to_paid(bw_row, eb_invoices):
     e-Builder status is still ``Approved`` but whose Byways status is now
     ``Paid``.
 
-    ``eb_invoices`` is the dict from ``ebAPI.get_Invoices_dict()``:
-    ``{voucher_id: {"Status": <eb status>, ...}}``.
+    ``eb_invoices`` is the dict from ``ebAPI.get_Invoices_for_paid_update()``,
+    keyed by Buyways Invoice No (= EB "Voucher ID"); each entry has "Status".
     """
     invoice_no = bw_row.get("Invoice No")
     if not invoice_no or invoice_no not in eb_invoices:
@@ -40,37 +48,30 @@ def should_update_to_paid(bw_row, eb_invoices):
     return eb_status == EB_STATUS_APPROVED and bw_status == BW_STATUS_PAID
 
 
-def build_paid_update(bw_row, fmp):
-    """Build the Paid-update payload for one invoice.
+def build_paid_update(bw_row, eb_entry):
+    """Build one /api/v2/Invoices/StatusUpdate ``data`` row.
 
-    Keys mirror ``uml_lib.ebCostLib.updateInvoiceHeaders`` so the payload lines
-    up with the e-Builder invoice-update contract. ``fmp`` is supplied by the
-    caller (looked up from the PO, same as the cost-import path does), keeping
-    this function pure.
+    Values come from the e-Builder invoice record (``eb_entry`` from
+    ``get_Invoices_for_paid_update``: native InvoiceNumber, CompanyNumber, Amount,
+    ProjectName) plus the Byways ``Paid Date``. Required by the endpoint:
+    projectIdentifier, invoiceNumber, amountPaid, companyNumber.
     """
-    # get_active_Projects stores the FMP as utf-8 bytes; decode so the payload is
-    # JSON-serializable (json.dumps cannot serialize bytes) for the live POST.
-    if isinstance(fmp, bytes):
-        fmp = fmp.decode("utf-8", "replace")
     return {
-        "FMP Number": fmp,
-        "Status": EB_STATUS_PAID,
-        "Invoice Number": bw_row.get("Invoice No"),
-        "Company Name": bw_row.get("Supplier Name", ""),
-        "Company Number": bw_row.get("Supplier Number", ""),
-        "Date Paid": bw_row.get("Paid Date", ""),
+        "projectIdentifier": eb_entry.get("ProjectName"),
+        "invoiceNumber": eb_entry.get("InvoiceNumber"),   # EB native number
+        "amountPaid": eb_entry.get("Amount"),             # paid in full
+        "companyNumber": eb_entry.get("CompanyNumber"),
+        "commitmentNumber": eb_entry.get("CommitmentNumber"),  # optional, if provided
+        "datePaid": bw_row.get("Paid Date", ""),
+        "status": EB_STATUS_PAID,
     }
 
 
-def collect_paid_updates(rows, eb_invoices, fmp_lookup=None):
-    """Scan Byways rows and return one Paid-update payload per invoice that
-    transitioned Payable -> Paid.
-
-    Multi-line invoices repeat across rows; each invoice yields at most one
-    update. ``fmp_lookup`` maps ``PO No`` -> FMP number; when a row's PO is not
-    present, the row's own ``FMP Number`` column is used as a fallback.
+def collect_paid_updates(rows, eb_invoices):
+    """Scan Byways rows and return one StatusUpdate payload per invoice that
+    transitioned Payable -> Paid. Multi-line invoices repeat across rows; each
+    invoice yields at most one update.
     """
-    fmp_lookup = fmp_lookup or {}
     updates = []
     seen = set()
     for r in rows:
@@ -80,58 +81,26 @@ def collect_paid_updates(rows, eb_invoices, fmp_lookup=None):
         if invoice_no in seen:
             continue
         seen.add(invoice_no)
-        fmp = fmp_lookup.get(r.get("PO No"), r.get("FMP Number", ""))
-        updates.append(build_paid_update(r, fmp))
+        updates.append(build_paid_update(r, eb_invoices[invoice_no]))
     return updates
 
 
-def write_paid_update_workbook(updates, out_path):
-    """Write collected Payable->Paid updates to an e-Builder "Invoice Update"
-    import workbook and save it to ``out_path``. Returns ``out_path``, or ``None``
-    when there are no updates.
-
-    This is the e-Builder-supported write path. A live run confirmed there is NO
-    REST endpoint for invoice status updates (POST /api/v2/invoices/update returns
-    404); invoice status is changed by importing this workbook through Data
-    Exchange, the same mechanism the cost-line import already uses.
-
-    Columns come from ``ebCostLib.updateInvoiceHeaders`` (FMP Number, Status,
-    Invoice Number, Company Name, Company Number, Date Paid); the payload keys
-    from ``build_paid_update`` already match those header names.
-    """
-    if not updates:
-        return None
-    # Lazy import so the pure functions above stay import-light for unit tests.
-    import uml_lib.ebCostLib as ebCost
-
-    wb, ws = ebCost.create_Excel()
-    ebCost.write_ExcelHeaders(wb, ws, "updateInvoice")
-    headers = ebCost.updateInvoiceHeaders  # {column_index: header_name}
-    for i, payload in enumerate(updates, start=2):  # row 1 is the header
-        for col, name in headers.items():
-            ws.cell(row=i, column=col).value = payload.get(name)
-    wb.save(out_path)
-    return out_path
-
-
-def post_invoice_update(payload, dry_run=True):
-    """DEPRECATED write path. A live sandbox run proved e-Builder has no
-    ``/api/v2/invoices/update`` REST endpoint (HTTP 404), so status updates are
-    written via :func:`write_paid_update_workbook` (Data Exchange import) instead.
-    Retained only for the dry-run unit test; do not call with ``dry_run=False``.
+def post_status_update(payload, dry_run=True):
+    """Record the payment / set the invoice Paid via POST /api/v2/Invoices/StatusUpdate.
 
     Defaults to ``dry_run``: no network call, just returns the payload it *would*
-    post.
+    post. With ``dry_run=False`` it POSTs. ``options.projectIdentifier="ProjectName"``
+    tells e-Builder the row's ``projectIdentifier`` is the project name.
     """
     if dry_run:
-        print("[DRY RUN] invoice paid-update:", payload)
+        print("[DRY RUN] invoice StatusUpdate:", payload)
         return {"dry_run": True, "posted": False, "payload": payload}
 
-    # Lazy import so the pure functions above stay import-light and hermetic
-    # for unit tests (no network/config dependency).
+    # Lazy import so the pure functions above stay import-light for unit tests.
     import uml_lib.ebAPI_lib as ebAPI
 
     hostname = str(getattr(ebAPI.get_config(), "hostname", "")).rstrip("/")
-    url = f"{hostname}/api/v2/invoices/update"  # unverified endpoint (no sandbox)
-    response = ebAPI.postTOAPI(url, payload)
+    url = f"{hostname}/api/v2/Invoices/StatusUpdate"
+    body = {"options": {"projectIdentifier": "ProjectName"}, "data": [payload]}
+    response = ebAPI.postTOAPI(url, body)
     return {"dry_run": False, "posted": True, "payload": payload, "response": response}
