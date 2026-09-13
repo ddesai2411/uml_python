@@ -867,6 +867,39 @@ def isInvoiceInEB(voucherID, ebInvoices):
             break
     return retVal
 
+def get_commitments_for_change():
+    """Lookup keyed by PeopleSoft PO# (the Buyways PO No) with the fields needed to
+    POST /api/v2/CommitmentChanges/Import (business req #2 commitment change order)
+    and the /api/v2/Invoices/Import follow-up line:
+
+        { ps_po: {"CommitmentNumber" (EB native), "ProjectName", "ItemNumbers":[...],
+                  "Value", "CommitmentID"} }
+
+    CommitmentChanges/Import matches on the NATIVE commitment number (not the
+    PeopleSoft PO#), and needs a commitment item number to hang the change on.
+    """
+    coms = getDataFromCache("Commitments")
+    items = getDataFromCache("CommitmentItems")
+    projects = getDataFromCache("ActiveProjects")
+    proj_name = {p.get("projectId"): p.get("name") for p in projects}
+    items_by_com = {}
+    for it in items:
+        items_by_com.setdefault(it.get("commitmentID"), []).append(it.get("itemNumber"))
+    out = {}
+    for c in coms:
+        pspo = str(c.get("PeopleSoft PO#") or "").strip()
+        if not pspo:
+            continue
+        cid = c.get("commitmentID")
+        out[pspo] = {
+            "CommitmentNumber": c.get("commitmentNumber"),   # EB native number
+            "ProjectName": proj_name.get(c.get("projectID")),
+            "ItemNumbers": items_by_com.get(cid, []),
+            "Value": c.get("currentCommitmentValue"),
+            "CommitmentID": cid,
+        }
+    return out
+
 def get_Invoices_for_paid_update():
     """Lookup keyed by Buyways Invoice No (the EB "Voucher ID" custom field) with
     the fields needed to POST /api/v2/Invoices/StatusUpdate (business req #1):

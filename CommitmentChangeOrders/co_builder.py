@@ -1,32 +1,43 @@
 """Commitment change order (CO) generation (business requirement #2, part 2).
 
 When an invoice's billed total exceeds its commitment (typically because shipping
-pushed it over the PO amount), e-Builder requires a commitment change order to
-raise the commitment by the difference before the invoice can sit against it.
-Today The User does this by hand. This module decides when a CO is needed and
-builds the payload.
+pushed it over the PO amount), the commitment must be raised before the invoice
+can sit against it. Today The User does this by hand.
 
-Two workflows The User described are both supported:
+MECHANISM (confirmed live in the sandbox, 2026-09-13):
+- Raise the commitment  -> POST /api/v2/CommitmentChanges/Import (the "Import
+  Commitment Changes" batch process). Verified: a commitment went 55 -> 65.
+- The <invoice>-1 follow-up cost line -> POST /api/v2/Invoices/Import (a cost
+  invoice import; verified it books the amount as an actual).
 
-1. CO before the invoice: the invoice has not been imported yet. Raise the
-   commitment by the delta, then the invoice imports at its full (corrected)
-   amount -- see eb/ebInv/invoice_amount.py.
-2. CO after the invoice: the invoice was already imported at the pre-shipping
-   amount and Byways added shipping later. Raise the commitment AND add a second
-   actual-cost line whose invoice number is ``<invoice>-1`` for the delta.
+Both match on the e-Builder NATIVE commitment number (not the Buyways PO No), so
+the payload fields come from ebAPI.get_commitments_for_change() keyed by the
+Buyways PO No.
 
-Decision/build functions are PURE (no I/O) and use Decimal, so every rule is
-unit-testable without e-Builder or a test environment. ``post_commitment_co`` is
-the only side-effecting function; it defaults to a dry run and isolates the
-(unverified, no-sandbox) POST endpoint in one place.
+Two workflows are supported:
+1. CO before the invoice: raise the commitment by the delta; the invoice then
+   imports at its full (corrected) amount (see eb/ebInv/invoice_amount.py).
+2. CO after the invoice: the invoice was imported at the pre-shipping amount and
+   Byways added shipping later. Raise the commitment AND add a <invoice>-1
+   actual-cost line for the delta.
+
+Decision/build functions are PURE (no I/O) and use Decimal. ``post_commitment_co``
+and ``post_followup_cost_line`` are the only side-effecting functions; both
+default to dry run.
 """
 
+from datetime import date
 from decimal import Decimal
 
 from eb.ebInv.invoice_amount import parse_money
 
 _ZERO = Decimal("0")
 DEFAULT_TOLERANCE = Decimal("0.01")
+
+# Commitment-change reason code. Account-configured (Setup -> Cost -> Reason Codes
+# -> Commitment Change). "Owner Directive" is a valid sandbox value; set the
+# production/UMass value here (or add a dedicated "Buyways Shipping/Discount" code).
+CO_REASON_CODE = "Owner Directive"
 
 
 def _amt(value):
@@ -36,13 +47,10 @@ def _amt(value):
     return parse_money(value)
 
 
-def _text(value):
-    """Coerce a value to str for JSON payloads. get_active_Projects stores the
-    FMP as utf-8 bytes, which json.dumps cannot serialize; decode it here so the
-    live POST does not crash."""
-    if isinstance(value, bytes):
-        return value.decode("utf-8", "replace")
-    return value
+def _first_item(co_entry):
+    """Commitment item number to hang the change/cost on (first item, else '001')."""
+    items = (co_entry or {}).get("ItemNumbers") or []
+    return items[0] if items else "001"
 
 
 def commitment_delta(billed_total, commitment_amount):
@@ -67,69 +75,79 @@ def followup_cost_line_invoice_number(invoice_no):
     return f"{invoice_no}-1"
 
 
-def build_commitment_co(po_no, po_info, delta, invoice_no, commitment_amount=None):
-    """Build the CO payload that raises a commitment by ``delta``.
+def build_commitment_co(co_entry, delta, invoice_no, change_date=None):
+    """Build one /api/v2/CommitmentChanges/Import ``data`` row that raises the
+    commitment by ``delta``.
 
-    ``po_info`` is an entry from ``ebAPI.get_activePOs`` (keys: FMP, Value,
-    Vendor, PO_ID, CommitmentType, Description).
+    ``co_entry`` is an entry from ``ebAPI.get_commitments_for_change()``
+    (CommitmentNumber (native), ProjectName, ItemNumbers, ...).
     """
-    po_info = po_info or {}
-    delta = _amt(delta)
-    co = {
-        "Commitment Number": po_no,
-        "Commitment ID": po_info.get("PO_ID"),
-        "FMP Number": _text(po_info.get("FMP")),
-        "Company Name": po_info.get("Vendor"),
-        "Change Amount": str(delta),
-        "Description": f"Shipping/discount adjustment for invoice {invoice_no}",
-        "Source Invoice": invoice_no,
-    }
-    if commitment_amount is not None:
-        co["New Commitment Amount"] = str(_amt(commitment_amount) + delta)
-    return co
-
-
-def build_followup_cost_line(po_no, po_info, delta, invoice_no):
-    """Build the ``<invoice>-1`` actual-cost line for the CO-after-invoice flow."""
-    po_info = po_info or {}
+    co_entry = co_entry or {}
+    change_date = change_date or date.today().isoformat()
     return {
-        "FMP Number": _text(po_info.get("FMP")),
-        "Invoice Number": followup_cost_line_invoice_number(invoice_no),
-        "Commitment Number": po_no,
-        "Invoice Item Amount": str(_amt(delta)),
-        "Description": f"Shipping/discount for invoice {invoice_no}",
+        "header": {
+            "projectIdentifier": co_entry.get("ProjectName"),
+            "commitmentNumber": co_entry.get("CommitmentNumber"),   # EB native number
+            "commitmentChangeNumber": f"BW-{invoice_no}",           # unique per commitment
+            "reasonCode": CO_REASON_CODE,
+            "dateofChange": change_date,
+            "description": f"Shipping/discount adjustment for invoice {invoice_no}",
+            "status": "Approved",
+        },
+        "items": [{
+            "commitmentChangeItemNumber": "001",
+            "commitmentItemNumber": _first_item(co_entry),
+            "amount": float(_amt(delta)),
+        }],
     }
 
 
-def plan_commitment_change(billed_total, commitment_amount, po_no, po_info,
-                           invoice_no, invoice_already_in_eb=False,
-                           tolerance=DEFAULT_TOLERANCE):
+def build_followup_cost_line(co_entry, delta, invoice_no):
+    """Build the ``<invoice>-1`` actual-cost line (POST /api/v2/Invoices/Import)
+    for the CO-after-invoice flow."""
+    co_entry = co_entry or {}
+    return {
+        "header": {
+            "projectIdentifier": co_entry.get("ProjectName"),
+            "commitmentNumber": co_entry.get("CommitmentNumber"),
+            "invoiceNumber": followup_cost_line_invoice_number(invoice_no),
+            "description": f"Shipping/discount for invoice {invoice_no}",
+        },
+        "items": [{
+            "commitmentItemNumber": _first_item(co_entry),
+            "amount": float(_amt(delta)),
+            "amountThisPeriod": float(_amt(delta)),
+        }],
+    }
+
+
+def plan_commitment_change(billed_total, commitment_amount, co_entry, invoice_no,
+                           invoice_already_in_eb=False, tolerance=DEFAULT_TOLERANCE):
     """Decide what (if anything) to do for one invoice/commitment.
 
     Returns a dict:
-      ``needs_co``  bool
-      ``delta``     Decimal (billed - commitment)
-      ``co``        CO payload or None
-      ``followup_line``  the ``<invoice>-1`` cost line, or None (only for the
-                         CO-after-invoice workflow)
+      ``needs_co``       bool
+      ``delta``          Decimal (billed - commitment)
+      ``co``             CommitmentChanges/Import payload or None
+      ``followup_line``  the <invoice>-1 Invoices/Import payload, or None (only for
+                         the CO-after-invoice workflow)
     """
     delta = commitment_delta(billed_total, commitment_amount)
     if not needs_change_order(billed_total, commitment_amount, tolerance):
         return {"needs_co": False, "delta": delta, "co": None, "followup_line": None}
-    co = build_commitment_co(po_no, po_info, delta, invoice_no, commitment_amount)
+    co = build_commitment_co(co_entry, delta, invoice_no)
     followup = (
-        build_followup_cost_line(po_no, po_info, delta, invoice_no)
+        build_followup_cost_line(co_entry, delta, invoice_no)
         if invoice_already_in_eb else None
     )
     return {"needs_co": True, "delta": delta, "co": co, "followup_line": followup}
 
 
 def post_commitment_co(payload, dry_run=True):
-    """Create the CO in e-Builder. Defaults to dry_run (logs, posts nothing).
+    """Raise the commitment via POST /api/v2/CommitmentChanges/Import.
 
-    NOTE: no sandbox -- the endpoint/shape is built blind from the e-Builder docs
-    and the noncostProcesses pattern in commitmentChangeOrders.py, and is
-    unverified until The User's first live run. Keep the POST isolated here.
+    Defaults to ``dry_run`` (logs, posts nothing). ``payload`` is one data row
+    (header + items) from :func:`build_commitment_co`.
     """
     if dry_run:
         print("[DRY RUN] commitment change order:", payload)
@@ -138,16 +156,17 @@ def post_commitment_co(payload, dry_run=True):
     import uml_lib.ebAPI_lib as ebAPI
 
     hostname = str(getattr(ebAPI.get_config(), "hostname", "")).rstrip("/")
-    url = f"{hostname}/api/v2/noncostProcesses?processprefix=CO"  # unverified (no sandbox)
-    response = ebAPI.postTOAPI(url, payload)
+    url = f"{hostname}/api/v2/CommitmentChanges/Import"
+    body = {"options": {"projectIdentifier": "ProjectName"}, "data": [payload]}
+    response = ebAPI.postTOAPI(url, body)
     return {"dry_run": False, "posted": True, "payload": payload, "response": response}
 
 
 def post_followup_cost_line(payload, dry_run=True):
-    """Post the ``<invoice>-1`` actual-cost line for the CO-after-invoice workflow.
+    """Post the ``<invoice>-1`` actual-cost line via POST /api/v2/Invoices/Import.
 
-    Defaults to dry_run (logs, posts nothing). Same no-sandbox caveat as
-    ``post_commitment_co``: the endpoint is unverified and isolated here.
+    Defaults to ``dry_run`` (logs, posts nothing). ``payload`` is one data row
+    (header + items) from :func:`build_followup_cost_line`.
     """
     if dry_run:
         print("[DRY RUN] follow-up cost line:", payload)
@@ -156,6 +175,7 @@ def post_followup_cost_line(payload, dry_run=True):
     import uml_lib.ebAPI_lib as ebAPI
 
     hostname = str(getattr(ebAPI.get_config(), "hostname", "")).rstrip("/")
-    url = f"{hostname}/api/v2/invoices/cost"  # unverified (no sandbox)
-    response = ebAPI.postTOAPI(url, payload)
+    url = f"{hostname}/api/v2/Invoices/Import"
+    body = {"options": {"projectIdentifier": "ProjectName"}, "data": [payload]}
+    response = ebAPI.postTOAPI(url, body)
     return {"dry_run": False, "posted": True, "payload": payload, "response": response}

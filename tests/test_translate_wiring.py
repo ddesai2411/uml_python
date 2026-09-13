@@ -25,6 +25,14 @@ ACTIVE_POS = {
              "PO_ID": "PO-2", "CommitmentType": "1", "Description": "widgets"},
 }
 
+# get_commitments_for_change() stub: PS PO# -> native commitment / project / items.
+CO_COMMITMENTS = {
+    "L100": {"CommitmentNumber": "KHT100", "ProjectName": "Proj", "ItemNumbers": ["001"],
+             "Value": "8439.60", "CommitmentID": "PO-1"},
+    "L200": {"CommitmentNumber": "KHT200", "ProjectName": "Proj", "ItemNumbers": ["001"],
+             "Value": "8439.60", "CommitmentID": "PO-2"},
+}
+
 
 def _patch_reference_data(monkeypatch, tmp_path):
     # e-Builder reference-data reads -> deterministic stubs
@@ -33,8 +41,9 @@ def _patch_reference_data(monkeypatch, tmp_path):
     monkeypatch.setattr(tr.ebAPI, "get_active_Projects", lambda: {})
     monkeypatch.setattr(tr.ebAPI, "get_activePOs", lambda ebProjs: ACTIVE_POS)
     monkeypatch.setattr(tr.ebAPI, "get_Invoices", lambda: ["X100", "X200"])
-    monkeypatch.setattr(tr.ebAPI, "get_Invoices_dict",
+    monkeypatch.setattr(tr.ebAPI, "get_Invoices_for_paid_update",
                         lambda: {"X100": {"Status": "Approved"}, "X200": {"Status": "Approved"}})
+    monkeypatch.setattr(tr.ebAPI, "get_commitments_for_change", lambda: CO_COMMITMENTS)
     monkeypatch.setattr(tr.ebAPI, "get_daily_imports_dir", lambda create=False: tmp_path)
     monkeypatch.setattr(tr.ebAPI, "get_dry_run", lambda: True)
 
@@ -65,14 +74,13 @@ def test_co_after_invoice_wiring(monkeypatch, tmp_path):
     assert len(posted_lines) == 1
 
     co = posted_cos[0]
-    assert co["Commitment Number"] == "L100"
-    assert co["Change Amount"] == "166.88"
-    assert co["New Commitment Amount"] == "8606.48"
+    assert co["header"]["commitmentNumber"] == "KHT100"   # EB native number
+    assert co["items"][0]["amount"] == 166.88             # the shipping delta
 
     line = posted_lines[0]
-    assert line["Invoice Number"] == "X100-1"       # the <invoice>-1 second line
-    assert line["Invoice Item Amount"] == "166.88"  # the shipping delta
-    assert line["Commitment Number"] == "L100"
+    assert line["header"]["invoiceNumber"] == "X100-1"    # the <invoice>-1 second line
+    assert line["items"][0]["amount"] == 166.88           # the shipping delta
+    assert line["header"]["commitmentNumber"] == "KHT100"
 
 
 def test_no_co_when_all_invoices_under_commitment(monkeypatch, tmp_path):

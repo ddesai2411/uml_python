@@ -69,6 +69,9 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     # Req #1: EB invoice lookup keyed by Buyways Invoice No (Voucher ID), carrying
     # the native invoiceNumber/companyNumber/amount/project needed for StatusUpdate.
     ebInvoicesStatus = ebAPI.get_Invoices_for_paid_update()
+    # Req #2: EB commitment lookup keyed by PeopleSoft PO# (Buyways PO No), carrying
+    # the native commitmentNumber/project/items needed for CommitmentChanges/Import.
+    coCommitments = ebAPI.get_commitments_for_change()
     paidUpdates = []
     paidUpdatesSeen = set()
     # Commitment change orders: one per invoice whose billed total exceeds its
@@ -137,8 +140,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                     coPlan = co_builder.plan_commitment_change(
                         r.get("Invoice Total"),
                         activePOs[r['PO No']]["Value"],
-                        r['PO No'],
-                        activePOs[r['PO No']],
+                        coCommitments.get(r['PO No']),
                         coInvNo,
                         invoice_already_in_eb=True,
                     )
@@ -205,8 +207,7 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                         coPlan = co_builder.plan_commitment_change(
                             r.get("Invoice Total"),
                             activePOs[r['PO No']]["Value"],
-                            r['PO No'],
-                            activePOs[r['PO No']],
+                            coCommitments.get(r['PO No']),
                             coInvNo,
                             invoice_already_in_eb=False,
                         )

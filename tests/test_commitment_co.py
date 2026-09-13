@@ -1,8 +1,9 @@
 """Business requirement #2 (part 2): commitment change order generation.
 
 Exercises the pure decision/build logic in ``CommitmentChangeOrders.co_builder``.
-No network/config -- this is how the CO rules are validated without a test
-environment.
+No network/config. The CO is applied via POST /api/v2/CommitmentChanges/Import and
+the <invoice>-1 follow-up line via POST /api/v2/Invoices/Import; payload fields come
+from the EB commitment record (native commitmentNumber, project, item numbers).
 
 Run: .venv/Scripts/python.exe -m pytest tests/test_commitment_co.py -v
 """
@@ -12,13 +13,13 @@ from decimal import Decimal
 from CommitmentChangeOrders import co_builder
 
 
-PO_INFO = {
-    "FMP": "301105",
+# An entry as ebAPI.get_commitments_for_change() returns it.
+CO_ENTRY = {
+    "CommitmentNumber": "KHT09494",       # EB native number
+    "ProjectName": "KH - Test Project",
+    "ItemNumbers": ["001"],
     "Value": "8439.60",
-    "Vendor": "Acme Supply",
-    "PO_ID": "PO-12345",
-    "CommitmentType": "1",
-    "Description": "Generator parts",
+    "CommitmentID": "PO-12345",
 }
 
 
@@ -27,7 +28,6 @@ PO_INFO = {
 # ---------------------------------------------------------------------------
 
 def test_delta_is_billed_minus_commitment():
-    # transcript example: PO 8439.60, billed exceeds it by shipping
     assert co_builder.commitment_delta("8606.48", "8439.60") == Decimal("166.88")
 
 
@@ -40,12 +40,10 @@ def test_no_co_when_billed_equals_commitment():
 
 
 def test_no_co_when_billed_below_commitment():
-    # partial invoice / discount below commitment -> no CO
     assert co_builder.needs_change_order("5000.00", "8439.60") is False
 
 
 def test_no_co_within_tolerance():
-    # a penny over is treated as rounding, not a real change
     assert co_builder.needs_change_order("8439.61", "8439.60") is False
 
 
@@ -54,7 +52,6 @@ def test_co_just_over_tolerance():
 
 
 def test_no_co_when_commitment_missing_or_zero():
-    # zero/blank commitment is treated as missing data, not "everything exceeds it"
     assert co_builder.needs_change_order("100.00", "0") is False
     assert co_builder.needs_change_order("100.00", "") is False
     assert co_builder.needs_change_order("100.00", None) is False
@@ -66,31 +63,32 @@ def test_thousands_formatted_amounts():
 
 
 # ---------------------------------------------------------------------------
-# build_commitment_co
+# build_commitment_co -> CommitmentChanges/Import row
 # ---------------------------------------------------------------------------
 
 def test_build_co_payload_fields():
-    co = co_builder.build_commitment_co(
-        "L001939576", PO_INFO, Decimal("166.88"), "X3321427", commitment_amount="8439.60"
-    )
-    assert co["Commitment Number"] == "L001939576"
-    assert co["Commitment ID"] == "PO-12345"
-    assert co["FMP Number"] == "301105"
-    assert co["Company Name"] == "Acme Supply"
-    assert co["Change Amount"] == "166.88"
-    assert co["New Commitment Amount"] == "8606.48"
-    assert co["Source Invoice"] == "X3321427"
-    assert "X3321427" in co["Description"]
+    co = co_builder.build_commitment_co(CO_ENTRY, Decimal("166.88"), "X3321427")
+    hdr = co["header"]
+    assert hdr["projectIdentifier"] == "KH - Test Project"
+    assert hdr["commitmentNumber"] == "KHT09494"        # EB native, not the Buyways PO No
+    assert hdr["commitmentChangeNumber"] == "BW-X3321427"
+    assert hdr["reasonCode"] == co_builder.CO_REASON_CODE
+    assert hdr["dateofChange"]                          # a date was set
+    assert "X3321427" in hdr["description"]
+    item = co["items"][0]
+    assert item["commitmentItemNumber"] == "001"
+    assert item["amount"] == 166.88
 
 
-def test_build_co_without_commitment_amount_omits_new_total():
-    co = co_builder.build_commitment_co("L1", PO_INFO, Decimal("50.00"), "X1")
-    assert "New Commitment Amount" not in co
-    assert co["Change Amount"] == "50.00"
+def test_build_co_item_defaults_to_001_when_no_items():
+    co = co_builder.build_commitment_co({"CommitmentNumber": "L1", "ItemNumbers": []},
+                                        Decimal("50.00"), "X1")
+    assert co["items"][0]["commitmentItemNumber"] == "001"
+    assert co["items"][0]["amount"] == 50.0
 
 
 # ---------------------------------------------------------------------------
-# follow-up cost line (CO-after-invoice workflow)
+# follow-up cost line (CO-after-invoice workflow) -> Invoices/Import row
 # ---------------------------------------------------------------------------
 
 def test_followup_invoice_number_suffix():
@@ -98,19 +96,19 @@ def test_followup_invoice_number_suffix():
 
 
 def test_build_followup_cost_line():
-    line = co_builder.build_followup_cost_line("L001939576", PO_INFO, Decimal("166.88"), "X3321427")
-    assert line["Invoice Number"] == "X3321427-1"
-    assert line["Commitment Number"] == "L001939576"
-    assert line["Invoice Item Amount"] == "166.88"
-    assert line["FMP Number"] == "301105"
+    line = co_builder.build_followup_cost_line(CO_ENTRY, Decimal("166.88"), "X3321427")
+    assert line["header"]["invoiceNumber"] == "X3321427-1"
+    assert line["header"]["commitmentNumber"] == "KHT09494"
+    assert line["items"][0]["amount"] == 166.88
+    assert line["items"][0]["amountThisPeriod"] == 166.88
 
 
 # ---------------------------------------------------------------------------
-# plan_commitment_change (ties it together, both workflows)
+# plan_commitment_change (both workflows)
 # ---------------------------------------------------------------------------
 
 def test_plan_no_co_needed():
-    plan = co_builder.plan_commitment_change("8000.00", "8439.60", "L1", PO_INFO, "X1")
+    plan = co_builder.plan_commitment_change("8000.00", "8439.60", CO_ENTRY, "X1")
     assert plan["needs_co"] is False
     assert plan["co"] is None
     assert plan["followup_line"] is None
@@ -118,31 +116,27 @@ def test_plan_no_co_needed():
 
 def test_plan_co_before_invoice_has_no_followup_line():
     plan = co_builder.plan_commitment_change(
-        "8606.48", "8439.60", "L001939576", PO_INFO, "X3321427",
-        invoice_already_in_eb=False,
-    )
+        "8606.48", "8439.60", CO_ENTRY, "X3321427", invoice_already_in_eb=False)
     assert plan["needs_co"] is True
     assert plan["delta"] == Decimal("166.88")
-    assert plan["co"]["Change Amount"] == "166.88"
+    assert plan["co"]["items"][0]["amount"] == 166.88
     assert plan["followup_line"] is None
 
 
 def test_plan_co_after_invoice_includes_followup_line():
     plan = co_builder.plan_commitment_change(
-        "8606.48", "8439.60", "L001939576", PO_INFO, "X3321427",
-        invoice_already_in_eb=True,
-    )
+        "8606.48", "8439.60", CO_ENTRY, "X3321427", invoice_already_in_eb=True)
     assert plan["needs_co"] is True
-    assert plan["followup_line"]["Invoice Number"] == "X3321427-1"
-    assert plan["followup_line"]["Invoice Item Amount"] == "166.88"
+    assert plan["followup_line"]["header"]["invoiceNumber"] == "X3321427-1"
+    assert plan["followup_line"]["items"][0]["amount"] == 166.88
 
 
 # ---------------------------------------------------------------------------
-# post_commitment_co dry-run safety
+# dry-run safety
 # ---------------------------------------------------------------------------
 
 def test_post_dry_run_posts_nothing():
-    co = co_builder.build_commitment_co("L1", PO_INFO, Decimal("10.00"), "X1")
+    co = co_builder.build_commitment_co(CO_ENTRY, Decimal("10.00"), "X1")
     result = co_builder.post_commitment_co(co, dry_run=True)
     assert result["posted"] is False
     assert result["dry_run"] is True
@@ -150,7 +144,7 @@ def test_post_dry_run_posts_nothing():
 
 
 def test_post_followup_cost_line_dry_run_posts_nothing():
-    line = co_builder.build_followup_cost_line("L1", PO_INFO, Decimal("10.00"), "X1")
+    line = co_builder.build_followup_cost_line(CO_ENTRY, Decimal("10.00"), "X1")
     result = co_builder.post_followup_cost_line(line, dry_run=True)
     assert result["posted"] is False
     assert result["dry_run"] is True
