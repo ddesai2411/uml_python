@@ -421,7 +421,8 @@ def write_FMP(proj_data):
     for j in range(0,i):
         # Need to check if there's data
         #currName = proj_data[j]["Name"]
-        currLead = proj_data[j]["FM Department Lead"]
+        # .get(): sandbox/native projects may not carry the "FM Department Lead" custom field.
+        currLead = proj_data[j].get("FM Department Lead")
         #print ">>>>",currLead, proj_data[j]["Status"]
         if (proj_data[j]["status"] == "Active") or (proj_data[j]["status"] == "TD Active"):
             if currLead == "O&S":
@@ -635,7 +636,7 @@ def get_POs():
         currPOnum = po_data[j]["commitmentNumber"]
 
         currPOdata = {"Status":po_data[j]["status"],"CurrValue":po_data[j]["currentCommitmentValue"],\
-                        "CommitmentID":po_data[j]["commitmentID"],"PS_PO":po_data[j]["PeopleSoft PO#"],\
+                        "CommitmentID":po_data[j]["commitmentID"],"PS_PO":po_data[j].get("PeopleSoft PO#"),\
                       "CompanyName":po_data[j]["companyName"],"CommitmentType":po_data[j]["commitmentType"],\
                       "Description":po_data[j]["description"]
                       }
@@ -682,7 +683,7 @@ def get_activePOs(ebProjs):
                 for q in ebPOs[p]["POs"]:
                         # Add each PeopleSoft PO # (eb custom field) to dictionary, with FMP
                         # Oct. 20, 2021: Check if PO is closed!
-                        if ebPOs[p]["POs"][q]["Status"] != "Closed":
+                        if ebPOs[p]["POs"][q]["Status"] != "Closed" and ebPOs[p]["POs"][q]["PS_PO"] is not None:
                             activePOs[ebPOs[p]["POs"][q]["PS_PO"]] = {"FMP":theFMP,"Value":ebPOs[p]["POs"][q]["CurrValue"],\
                                                                   "Vendor":ebPOs[p]["POs"][q]["CompanyName"],\
                                                                       "PO_ID":ebPOs[p]["POs"][q]["CommitmentID"],\
@@ -848,9 +849,11 @@ def get_Invoices():
     ebAPI_Invoices = []
     # Check if this is for an Active project?
     for j in range(0,i):
-        if invoice_data[j]["Voucher ID"] is not None:
-            if invoice_data[j]["Voucher ID"][0] == "X":
-                ebAPI_Invoices.append(invoice_data[j]["Voucher ID"])
+        # .get(): native (non-Buyways) invoices have no "Voucher ID" custom field.
+        voucherID = invoice_data[j].get("Voucher ID")
+        if voucherID is not None:
+            if voucherID[0] == "X":
+                ebAPI_Invoices.append(voucherID)
         #else:
             #print "No custom field... Status?", invoice_data[j]["status"]
     #print(ebAPI_Invoices)
@@ -873,18 +876,23 @@ def get_Invoices_dict():
     ebAPI_Invoices = {}
     # Check if this is for an Active project?
     for j in range(0,i):
-        currInvNum = invoice_data[j]["invoiceNumber"]
+        # .get(): native (non-Buyways) invoices have no "Voucher ID" custom field at
+        # all, and some records may lack "invoiceNumber" - neither should crash the scan.
+        currInvNum = invoice_data[j].get("invoiceNumber") or ""
+        voucherID = invoice_data[j].get("Voucher ID")
 
-        if invoice_data[j]["Voucher ID"] is not None:
-            if invoice_data[j]["Voucher ID"][0] == "X":
+        if voucherID is not None:
+            if voucherID[0] == "X":
                 # DO we need VOID also? To avoid bringing in voided - they will throw exception
                 if invoice_data[j]["status"] == "Approved" or invoice_data[j]["status"] == "Paid":
-                    ebAPI_Invoices[invoice_data[j]["Voucher ID"]] = {"Status":invoice_data[j]["status"],"Source":"BW",\
+                    ebAPI_Invoices[voucherID] = {"Status":invoice_data[j]["status"],"Source":"BW",\
                                                                          #"PO_ID":invoice_data[j]["CommitmentID"]
                                                                      }
         elif currInvNum[:5] == "PAYAP": # we need to check project for admin/test invoices?
-            if invoice_data[j]["Status"] == "Approved" or invoice_data[j]["Status"] == "Paid":
-                ebAPI_Invoices[invoice_data[j]["InvoiceNumber"]] = {"Status":invoice_data[j]["Status"],"Source":"EB",\
+            # Cache uses lowercase "status"/"invoiceNumber" (see the "X" branch above);
+            # the capitalized keys here KeyError'd on every PAYAP record.
+            if invoice_data[j]["status"] == "Approved" or invoice_data[j]["status"] == "Paid":
+                ebAPI_Invoices[invoice_data[j]["invoiceNumber"]] = {"Status":invoice_data[j]["status"],"Source":"EB",\
                                                                  #"PO_ID":invoice_data[j]["CommitmentID"],"InvAmt":invoice_data[j]["InvoiceAmount"]
                                                                     }
         # else:
