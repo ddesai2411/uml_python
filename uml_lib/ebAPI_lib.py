@@ -386,8 +386,11 @@ def postTOAPI(URL, data, timeout: float = 30.0) -> Any:
             charset = resp.headers.get_content_charset() or "utf-8"
             response = resp.read().decode(charset)
             data = json.loads(response)
-            if 'records' not in data:
-                print ('Data Import Failed!')
+            # Query endpoints return a 'records' array; the Import/StatusUpdate cost
+            # endpoints return {"success": true, ...} with no 'records'. Only report a
+            # failure when the response explicitly says success == false.
+            if isinstance(data, dict) and data.get('success') is False:
+                print('Data Import Failed!')
             else:
                 print("Data imported Successfully!!!")
 
