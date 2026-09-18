@@ -16,6 +16,10 @@ class eBuilderConfig:
     # e-Builder but do not actually POST. Set "dry_run": false to go live. Defaults
     # to True so a missing key never posts to production by accident.
     dry_run: bool = True
+    # Commitment-change reason code used for shipping/discount COs. Account-specific
+    # (Setup -> Cost -> Reason Codes -> Commitment Change). MUST be set to a valid
+    # value for the target e-Builder, or CommitmentChanges/Import rejects the CO.
+    co_reason_code: Optional[str] = None
 
     @staticmethod
     def from_dict(data: dict[str, Any]) -> "eBuilderConfig":
@@ -46,6 +50,7 @@ class eBuilderConfig:
             from_bw_dir=data.get("from_bw_dir"),
             fmp_output_file=data.get("fmp_output_file"),
             dry_run=data.get("dry_run", True),
+            co_reason_code=data.get("co_reason_code"),
         )
 
 

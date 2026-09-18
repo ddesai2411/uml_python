@@ -4,5 +4,6 @@
   "password": "REPLACE_WITH_API_KEY_DO_NOT_COMMIT",
   "data_cache_dir": "C:\\path\\to\\ebData",
   "daily_imports_dir": "C:\\path\\to\\dailyImports",
-  "dry_run": true
+  "dry_run": true,
+  "co_reason_code": "Owner Directive"
 }

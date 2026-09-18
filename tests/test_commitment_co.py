@@ -72,7 +72,7 @@ def test_build_co_payload_fields():
     assert hdr["projectIdentifier"] == "KH - Test Project"
     assert hdr["commitmentNumber"] == "KHT09494"        # EB native, not the Buyways PO No
     assert hdr["commitmentChangeNumber"] == "BW-X3321427"
-    assert hdr["reasonCode"] == co_builder.CO_REASON_CODE
+    assert hdr["reasonCode"] == co_builder.get_co_reason_code()
     assert hdr["dateofChange"]                          # a date was set
     assert "X3321427" in hdr["description"]
     item = co["items"][0]

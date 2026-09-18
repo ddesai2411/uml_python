@@ -34,10 +34,25 @@ from eb.ebInv.invoice_amount import parse_money
 _ZERO = Decimal("0")
 DEFAULT_TOLERANCE = Decimal("0.01")
 
-# Commitment-change reason code. Account-configured (Setup -> Cost -> Reason Codes
-# -> Commitment Change). "Owner Directive" is a valid sandbox value; set the
-# production/UMass value here (or add a dedicated "Buyways Shipping/Discount" code).
+# Commitment-change reason code fallback. Account-configured (Setup -> Cost ->
+# Reason Codes -> Commitment Change). "Owner Directive" is a valid SANDBOX value.
+# For production, set "co_reason_code" in config.ebuilder.json to UMass's valid value
+# (this constant is only the fallback when the config key is absent).
 CO_REASON_CODE = "Owner Directive"
+
+
+def get_co_reason_code():
+    """The commitment-change reason code: config.co_reason_code if set, else the
+    CO_REASON_CODE fallback. Config is read lazily so the pure builders stay
+    testable without a config file."""
+    try:
+        import uml_lib.ebAPI_lib as ebAPI
+        cfg_val = getattr(ebAPI.get_config(), "co_reason_code", None)
+        if cfg_val:
+            return cfg_val
+    except Exception:
+        pass
+    return CO_REASON_CODE
 
 
 def _amt(value):
@@ -89,7 +104,7 @@ def build_commitment_co(co_entry, delta, invoice_no, change_date=None):
             "projectIdentifier": co_entry.get("ProjectName"),
             "commitmentNumber": co_entry.get("CommitmentNumber"),   # EB native number
             "commitmentChangeNumber": f"BW-{invoice_no}",           # unique per commitment
-            "reasonCode": CO_REASON_CODE,
+            "reasonCode": get_co_reason_code(),
             "dateofChange": change_date,
             "description": f"Shipping/discount adjustment for invoice {invoice_no}",
             "status": "Approved",
