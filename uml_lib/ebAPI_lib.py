@@ -89,11 +89,53 @@ def get_config() -> eBuilderConfig:
     return _APIConfig
 
 
+# Runtime overrides the dashboard/GUI can set without editing the config file.
+_DRY_RUN_OVERRIDE = None   # None -> use config; True/False -> force
+_SCOPE_FMPS = None         # None -> no scope; set of FMP strings -> only those projects
+
+
+def set_dry_run_override(value):
+    """Force dry-run on (True) / off (False) at runtime, or None to use the config.
+    Lets the dashboard's checkbox control posting without editing config.ebuilder.json.
+    """
+    global _DRY_RUN_OVERRIDE
+    _DRY_RUN_OVERRIDE = value
+
+
 def get_dry_run() -> bool:
     """Whether the invoice/CO writers should only log (True) or actually POST to
-    e-Builder (False). Defaults to True so a missing key never posts by accident.
+    e-Builder (False). Runtime override wins; otherwise the config; defaults to True
+    so a missing key never posts by accident.
     """
+    if _DRY_RUN_OVERRIDE is not None:
+        return bool(_DRY_RUN_OVERRIDE)
     return bool(getattr(get_config(), "dry_run", True))
+
+
+def set_scope_fmps(fmps):
+    """Limit processing to the given FMP number(s) (a list/set of strings), or None
+    to clear the scope. When set, the read lookups only return invoices, POs and
+    commitments belonging to those FMPs' projects -- so a run touches only those
+    projects (used for a contained first production run).
+    """
+    global _SCOPE_FMPS
+    _SCOPE_FMPS = {str(f).strip() for f in fmps if str(f).strip()} if fmps else None
+
+
+def _fmp_str(fmp):
+    """FMP may be stored as utf-8 bytes (get_active_Projects encodes it); normalize."""
+    if isinstance(fmp, bytes):
+        return fmp.decode("utf-8", "replace")
+    return "" if fmp is None else str(fmp)
+
+
+def _scope_project_ids():
+    """Project IDs for the scoped FMPs (None when no scope is set)."""
+    if _SCOPE_FMPS is None:
+        return None
+    projs = getDataFromCache("ActiveProjects")
+    return {p.get("projectId") for p in projs
+            if _fmp_str(p.get("FMP Number")).strip() in _SCOPE_FMPS}
 
 
 def get_cache_dir(create: bool = False) -> Path:
@@ -703,6 +745,9 @@ def get_activePOs(ebProjs):
             #print "****************", p, activePOs[p]["FMP"], activePOs[p]["Value"]
     build_commitTypes(activePOs)
 
+    if _SCOPE_FMPS is not None:
+        activePOs = {k: v for k, v in activePOs.items()
+                     if _fmp_str(v.get("FMP")).strip() in _SCOPE_FMPS}
     return(activePOs)
 
 vendorTypes = {}
@@ -850,12 +895,15 @@ def get_Invoices():
     i = len(invoice_data)
 
     ebAPI_Invoices = []
+    scope_pids = _scope_project_ids()
     # Check if this is for an Active project?
     for j in range(0,i):
         # .get(): native (non-Buyways) invoices have no "Voucher ID" custom field.
         voucherID = invoice_data[j].get("Voucher ID")
         if voucherID is not None:
             if voucherID[0] == "X":
+                if scope_pids is not None and invoice_data[j].get("projectId") not in scope_pids:
+                    continue
                 ebAPI_Invoices.append(voucherID)
         #else:
             #print "No custom field... Status?", invoice_data[j]["status"]
@@ -888,10 +936,13 @@ def get_commitments_for_change():
     items_by_com = {}
     for it in items:
         items_by_com.setdefault(it.get("commitmentID"), []).append(it.get("itemNumber"))
+    scope_pids = _scope_project_ids()
     out = {}
     for c in coms:
         pspo = str(c.get("PeopleSoft PO#") or "").strip()
         if not pspo:
+            continue
+        if scope_pids is not None and c.get("projectID") not in scope_pids:
             continue
         cid = c.get("commitmentID")
         out[pspo] = {
@@ -923,10 +974,13 @@ def get_Invoices_for_paid_update():
     projects = getDataFromCache("ActiveProjects")
     comp_num = {c.get("companyId"): c.get("companyNumber") for c in companies if c.get("companyId")}
     proj_name = {p.get("projectId"): p.get("name") for p in projects}
+    scope_pids = _scope_project_ids()
     out = {}
     for r in invoice_data:
         vid = r.get("Voucher ID")
         if vid is not None and str(vid)[:1] == "X":
+            if scope_pids is not None and r.get("projectId") not in scope_pids:
+                continue
             out[vid] = {
                 "Status": r.get("status"),
                 "InvoiceNumber": r.get("invoiceNumber"),

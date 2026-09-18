@@ -71,17 +71,50 @@ def get_eb_data_status_text():
 
 def run_bw2eb():
     global supportFile, CSVfile
-    # clear results, in case we already ran
-    lblResults.config(text="Results\nRunning Buyways to e-Builder")
     if CSVfile == "":
         mb.showwarning(title=None, message="No CSV file selected: can't run bw2eb")
-    else:
+        return
+
+    # Apply the UI controls: dry-run toggle + optional FMP scope.
+    dry = bool(dryRunVar.get())
+    scope_raw = scopeVar.get().strip()
+    fmps = [s.strip() for s in scope_raw.split(",") if s.strip()] if scope_raw else None
+    eb.set_dry_run_override(dry)
+    eb.set_scope_fmps(fmps)
+
+    mode = "DRY RUN - preview only, nothing posted" if dry else "LIVE - posting to e-Builder"
+    scope_txt = ("FMP(s): " + ", ".join(fmps)) if fmps else "ALL projects"
+
+    # Live runs are irreversible; make the user confirm.
+    if not dry:
+        if not mb.askyesno(title="Confirm LIVE run",
+                           message=f"This will POST to e-Builder for {scope_txt}.\n\nProceed?"):
+            eb.set_dry_run_override(None); eb.set_scope_fmps(None)
+            lblResults.config(text="Cancelled (live run not confirmed).")
+            return
+
+    lblResults.config(text=f"Running Buyways to e-Builder...\nMode: {mode}\nScope: {scope_txt}")
+    lblResults.update_idletasks()
+    try:
         res = bw2eb.main(CSVfile)
-        print(res)
-        if type(res) == dict:
-            lblResults.config(text=("Complete. Excel files are saved in: " + res['ImportFile']))
-        else:
-            lblResults.config(text=("Complete. Excel files are saved in: " + res))
+    finally:
+        # never let the override/scope leak into a later run
+        eb.set_dry_run_override(None)
+        eb.set_scope_fmps(None)
+    print(res)
+
+    if isinstance(res, dict):
+        s = res.get("Stats", {})
+        verb = "would flip" if dry else "flipped"
+        lines = [f"Complete - {mode}", f"Scope: {scope_txt}"]
+        if "PaidUpdate" in s:
+            lines += [f"  Invoices {verb} Payable->Paid : {s.get('PaidUpdate', 0)}",
+                      f"  Commitment change orders     : {s.get('ChangeOrder', 0)}",
+                      f"  Shipping/discount (-1) lines : {s.get('FollowupLine', 0)}"]
+        lines.append(f"  New-invoice import workbook  : {res.get('ImportFile', 'n/a')}")
+        lblResults.config(text="\n".join(lines))
+    else:
+        lblResults.config(text="Complete: " + str(res))
 
 def run_monthStat():
     try:
@@ -229,23 +262,36 @@ btn_csv.grid(column=1, row=5, padx=xdPad, pady=ydPad, sticky=tk.W)
 label_csv = ttk.Label(frame_bw2eb, text="No file selected")
 label_csv.grid(column=1, row=6, padx=xdPad, pady=ydPad, sticky=tk.W)
 
+# Dry-run toggle (checked = preview only, nothing posted to e-Builder)
+dryRunVar = tk.BooleanVar(value=True)
+chk_dryrun = ttk.Checkbutton(frame_bw2eb,
+    text="Dry run (preview only - do NOT post to e-Builder)", variable=dryRunVar)
+chk_dryrun.grid(column=1, row=7, padx=xdPad, pady=ydPad, sticky=tk.W)
+
+# Optional scope: limit the run to specific FMP(s); blank = all projects
+scope_lbl = ttk.Label(frame_bw2eb, text="Limit to FMP number(s), comma-separated (blank = all projects):")
+scope_lbl.grid(column=1, row=8, padx=xdPad, pady=ydPad, sticky=tk.W)
+scopeVar = tk.StringVar(value="")
+scope_entry = ttk.Entry(frame_bw2eb, textvariable=scopeVar, width=60)
+scope_entry.grid(column=1, row=9, padx=xdPad, pady=ydPad, sticky=tk.W)
+
 btn_run = ttk.Button(frame_bw2eb, text="Run bw2eb", command=run_bw2eb, width=dWidth)
-btn_run.grid(column=1, row=7, padx=xdPad, pady=ydPad, sticky=tk.W)
+btn_run.grid(column=1, row=10, padx=xdPad, pady=ydPad, sticky=tk.W)
 
 lblResults = ttk.Label(frame_bw2eb, text="Buyways File import Results:\n...", anchor="w")
-lblResults.grid(column=1, row=8, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
+lblResults.grid(column=1, row=11, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
 
 btn_bwebJoined = ttk.Button(frame_bw2eb, text="Run bwebJoined", command=run_bw2ebJoined, width=dWidth)
-btn_bwebJoined.grid(column=1, row=9, padx=xdPad, pady=ydPad, sticky=tk.W)
+btn_bwebJoined.grid(column=1, row=12, padx=xdPad, pady=ydPad, sticky=tk.W)
 
 lbl_bwebJoinedresults = ttk.Label(frame_bw2eb, text="Buways Files Import Results:\n...\n...\n...", anchor="w")
-lbl_bwebJoinedresults.grid(column=1, row=10, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
+lbl_bwebJoinedresults.grid(column=1, row=13, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
 
 btn_bwebXML = ttk.Button(frame_bw2eb, text="Run bweb XML", command=run_bw2ebXML, width=dWidth)
-btn_bwebXML.grid(column=1, row=11, padx=xdPad, pady=ydPad, sticky=tk.W)
+btn_bwebXML.grid(column=1, row=14, padx=xdPad, pady=ydPad, sticky=tk.W)
 
 lbl_bwebXMLresults = ttk.Label(frame_bw2eb, text="Buways Files Import Results:\n...\n...\n...", anchor="w")
-lbl_bwebXMLresults.grid(column=1, row=12, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
+lbl_bwebXMLresults.grid(column=1, row=15, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
 
 # Time Allocation
 frame_timeAlloc = ttk.LabelFrame(window, text="Time Alocation Reports")
