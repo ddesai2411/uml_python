@@ -195,15 +195,13 @@ def run_bw2eb():
         mb.showwarning(title=None, message="No CSV file selected: can't run bw2eb")
         return
 
-    # Apply the UI controls: dry-run toggle + optional FMP scope.
+    # Apply the UI control: dry-run toggle. (FMP scope is always all projects.)
     dry = bool(dryRunVar.get())
-    scope_raw = scopeVar.get().strip()
-    fmps = [s.strip() for s in scope_raw.split(",") if s.strip()] if scope_raw else None
     eb.set_dry_run_override(dry)
-    eb.set_scope_fmps(fmps)
+    eb.set_scope_fmps(None)
 
     mode = "DRY RUN - preview only, nothing posted" if dry else "LIVE - posting to e-Builder"
-    scope_txt = ("FMP(s): " + ", ".join(fmps)) if fmps else "ALL projects"
+    scope_txt = "ALL projects"
 
     # Live runs are irreversible; make the user confirm.
     if not dry:
@@ -378,13 +376,6 @@ dryRunVar = tk.BooleanVar(value=True)
 chk_dryrun = ttk.Checkbutton(frame_bw2eb,
     text="Dry run (preview only - do NOT post to e-Builder)", variable=dryRunVar)
 chk_dryrun.grid(column=1, row=7, padx=xdPad, pady=ydPad, sticky=tk.W)
-
-# Optional scope: limit the run to specific FMP(s); blank = all projects
-scope_lbl = ttk.Label(frame_bw2eb, text="Limit to FMP number(s), comma-separated (blank = all projects):")
-scope_lbl.grid(column=1, row=8, padx=xdPad, pady=ydPad, sticky=tk.W)
-scopeVar = tk.StringVar(value="")
-scope_entry = ttk.Entry(frame_bw2eb, textvariable=scopeVar, width=60)
-scope_entry.grid(column=1, row=9, padx=xdPad, pady=ydPad, sticky=tk.W)
 
 btn_run = ttk.Button(frame_bw2eb, text="Run bw2eb", command=run_bw2eb, width=dWidth)
 btn_run.grid(column=1, row=10, padx=xdPad, pady=ydPad, sticky=tk.W)
