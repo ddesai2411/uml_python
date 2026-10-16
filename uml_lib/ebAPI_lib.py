@@ -122,6 +122,13 @@ def set_scope_fmps(fmps):
     _SCOPE_FMPS = {str(f).strip() for f in fmps if str(f).strip()} if fmps else None
 
 
+def get_scope_fmps():
+    """The currently applied FMP scope as a sorted list, or None when unscoped.
+    Lets a run report show which projects it was limited to.
+    """
+    return sorted(_SCOPE_FMPS) if _SCOPE_FMPS else None
+
+
 def _fmp_str(fmp):
     """FMP may be stored as utf-8 bytes (get_active_Projects encodes it); normalize."""
     if isinstance(fmp, bytes):

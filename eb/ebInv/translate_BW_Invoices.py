@@ -13,6 +13,7 @@ import eb.ebInv.write_Invoice_Cost_line as wINC
 #import uml_python.ebInv.write_Invoice_Process_line as wINP
 import uml_lib.ebAPI_lib as ebAPI
 import eb.ebInv.invoice_updates as invoice_updates
+import eb.ebInv.invoice_amount as invoice_amount
 import CommitmentChangeOrders.co_builder as co_builder
 
 
@@ -80,6 +81,11 @@ def translate_Buyways_Invoices(theCSV, currStamp):
     changeOrdersSeen = set()
     # <invoice>-1 actual-cost lines for the CO-after-invoice workflow.
     followupLines = []
+    # Per-line preview of every record this run will act on, for the completion
+    # modal: one dict per Paid update / change order / follow-up / new invoice,
+    # carrying the identifiers to look up in e-Builder during a live run.
+    details = []
+    newInvoiceRows = 0
     lineType = ""
     lineCount = 0
     firstProcess = False    # flags to create Excel
@@ -126,6 +132,17 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                         paidUpdatesSeen.add(invNo)
                         counts["PaidUpdate"] += 1
                         print("Payable->Paid update queued:", invNo)
+                        ebEntry = ebInvoicesStatus[invNo]
+                        details.append({
+                            "Action": "Payable->Paid",
+                            "PO No": r.get("PO No", ""),
+                            "Commitment": ebEntry.get("CommitmentNumber", ""),
+                            "InvoiceBW": invNo,
+                            "InvoiceEB": ebEntry.get("InvoiceNumber", ""),
+                            "Amount": ebEntry.get("Amount", ""),
+                            "Project": ebEntry.get("ProjectName", ""),
+                            "LookFor": "Invoice flips Approved->Paid; actualsPaid booked",
+                        })
                 else:
                     print("Already in EB", r["Invoice No"])
                     counts["AlreadyInEB"] += 1
@@ -151,6 +168,28 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                         counts["FollowupLine"] += 1
                         print("CO + follow-up line queued (after invoice):",
                               r['PO No'], "delta", coPlan["delta"])
+                        coCom = coCommitments.get(r['PO No']) or {}
+                        coFMP = activePOs[r['PO No']].get("FMP", "")
+                        details.append({
+                            "Action": "Change Order",
+                            "PO No": r.get("PO No", ""),
+                            "Commitment": coCom.get("CommitmentNumber", ""),
+                            "InvoiceBW": coInvNo,
+                            "InvoiceEB": "",
+                            "Amount": coPlan["delta"],
+                            "Project": coFMP,
+                            "LookFor": "New CO raises commitment by delta",
+                        })
+                        details.append({
+                            "Action": "Follow-up (-1)",
+                            "PO No": r.get("PO No", ""),
+                            "Commitment": coCom.get("CommitmentNumber", ""),
+                            "InvoiceBW": f"{coInvNo}-1",
+                            "InvoiceEB": "",
+                            "Amount": coPlan["delta"],
+                            "Project": coFMP,
+                            "LookFor": "Follow-up cost line <invoice>-1 books the delta",
+                        })
             elif r['PO No'] in activePOs and activePOs[r['PO No']]["CommitmentType"][0] != '2': # what about PO reqs? If origin code is LEB, check custom field? or always custom field?
                 print("Not already in EB:", r["Invoice No"])
                 # 230630: Check commitment type (or filter out type 2s?)
@@ -197,6 +236,17 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                             currFundRule = "CHECK FUNDING RULE"
                     #print( "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@Current funding rule", currFundRule, type(currFundRule))
                     wINC.write_Invoice_Cost_line(r, activePOs, currFundRule, "CHECK_THIS", costWS)
+                    newInvoiceRows += 1
+                    details.append({
+                        "Action": "New Invoice",
+                        "PO No": r.get("PO No", ""),
+                        "Commitment": (coCommitments.get(r['PO No']) or {}).get("CommitmentNumber", ""),
+                        "InvoiceBW": r.get("Invoice No", ""),
+                        "InvoiceEB": "",
+                        "Amount": invoice_amount.compute_invoice_line_amount(r),
+                        "Project": currFMP,
+                        "LookFor": "New invoice in import workbook (InvoiceCostImport.xlsx)",
+                    })
 
                     # Commitment change order: if this invoice's billed total
                     # exceeds the commitment (e.g. shipping pushed it over the
@@ -215,6 +265,17 @@ def translate_Buyways_Invoices(theCSV, currStamp):
                             changeOrders.append(coPlan["co"])
                             counts["ChangeOrder"] += 1
                             print("Change order queued:", r['PO No'], "delta", coPlan["delta"])
+                            coCom = coCommitments.get(r['PO No']) or {}
+                            details.append({
+                                "Action": "Change Order",
+                                "PO No": r.get("PO No", ""),
+                                "Commitment": coCom.get("CommitmentNumber", ""),
+                                "InvoiceBW": coInvNo,
+                                "InvoiceEB": "",
+                                "Amount": coPlan["delta"],
+                                "Project": currFMP,
+                                "LookFor": "New CO raises commitment by delta",
+                            })
                 # REWORK THIS: WE ARE CHECKING acivePOs twice. I can't get elif working
                 
 
@@ -291,12 +352,62 @@ def translate_Buyways_Invoices(theCSV, currStamp):
         costFile = True
     # Req #1 Payable->Paid updates are POSTed to Invoices/StatusUpdate above (not a
     # file); count is in counts["PaidUpdate"].
+
+    # Comprehensive run report for the completion modal: every metric this run can
+    # expose. _n() tolerates dicts, lists and None so a missing cache reads as 0.
+    def _n(x):
+        try:
+            return len(x)
+        except TypeError:
+            return 0
+    outputs = []
+    if firstCost:
+        outputs.append(ofilebase + "InvoiceCostImport.xlsx")
+    if firstProcess:
+        outputs.append(ofilebase + "InvoiceProcessImport.xlsx")
+    report = {
+        "Run": {
+            "mode": "DRY RUN" if dry_run else "LIVE",
+            "dry_run": dry_run,
+            "inputFile": theCSV,
+            "timestamp": currStamp,
+            "source": "CSV",
+            "scopeFMPs": ebAPI.get_scope_fmps(),
+        },
+        "ReferenceData": {
+            "activeProjects": _n(ebProjs),
+            "activePOs": _n(activePOs),
+            "ebInvoices": _n(ebInvoices),
+            "commitments": _n(coCommitments),
+            "fundingRules": _n(ebST),
+            "budgetTasks": _n(budgTasks),
+            "paidUpdateCandidates": _n(ebInvoicesStatus),
+            "coCandidates": _n(coCommitments),
+        },
+        "CsvParse": {
+            "rowsRead": lineCount,
+            "parseErrors": _n(errorLine),
+            "parseErrorRows": list(errorLine),
+        },
+        "Counts": dict(counts),
+        "ActionsQueued": {
+            "paidUpdates": len(paidUpdates),
+            "changeOrders": len(changeOrders),
+            "followupLines": len(followupLines),
+            "newInvoiceRows": newInvoiceRows,
+        },
+        "Outputs": outputs,
+        "dailyImportsDir": str(daily_imports_dir),
+    }
+
     if costFile:
-        retval = {'Stats': counts, 'ImportFile': ofile, 'PaidUpdates': counts["PaidUpdate"]}
+        retval = {'Stats': counts, 'ImportFile': ofile, 'PaidUpdates': counts["PaidUpdate"],
+                  'Details': details, 'Report': report}
         return retval
         # return ofile
     else:
-        retVal = {'Stats':counts, 'ImportFile': 'No EBCost Invoices', 'PaidUpdates': counts["PaidUpdate"]}
+        retVal = {'Stats':counts, 'ImportFile': 'No EBCost Invoices', 'PaidUpdates': counts["PaidUpdate"],
+                  'Details': details, 'Report': report}
         # print(retVal)
         return retVal
         # return 'No EBCost POs'

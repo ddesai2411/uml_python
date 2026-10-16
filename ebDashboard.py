@@ -69,6 +69,126 @@ def get_eb_data_status_text():
 
     return "EB Data last Imported on:" + latest_modified_time
 
+def show_run_results(res, mode, scope_txt, dry):
+    """Pop a modal dialog at the end of a bw2eb run showing the full run report
+    (every metric the translator exposes) plus a per-line table of exactly which
+    records the run will act on -- the PO / invoice / commitment numbers to look
+    up in e-Builder during a live run.
+    """
+    win = tk.Toplevel(main_window)
+    win.title("Dry run complete" if dry else "Import complete")
+    win.transient(main_window)
+    win.geometry("980x680")
+    win.minsize(640, 400)
+
+    def _close(*_):
+        try:
+            win.grab_release()
+        except Exception:
+            pass
+        win.destroy()
+
+    win.protocol("WM_DELETE_WINDOW", _close)
+    win.bind("<Escape>", _close)
+
+    ttk.Label(win, text=("DRY RUN - preview only" if dry else "LIVE run - posted to e-Builder"),
+              font=("TkDefaultFont", 11, "bold")).pack(anchor="w", padx=10, pady=(10, 4))
+
+    if not isinstance(res, dict):
+        ttk.Label(win, text="Complete: " + str(res)).pack(anchor="w", padx=10, pady=10)
+        ttk.Button(win, text="Close", command=_close).pack(pady=10)
+        win.grab_set()
+        return
+
+    report = res.get("Report", {}) or {}
+    details = res.get("Details", []) or []
+
+    # --- Full run report (every metric) in a read-only scrollable Text ---
+    rpt_frame = ttk.LabelFrame(win, text="Run report")
+    rpt_frame.pack(fill="both", expand=False, padx=10, pady=6)
+    rpt_text = tk.Text(rpt_frame, height=16, wrap="none")
+    rpt_scroll = ttk.Scrollbar(rpt_frame, orient="vertical", command=rpt_text.yview)
+    rpt_text.configure(yscrollcommand=rpt_scroll.set)
+    rpt_text.pack(side="left", fill="both", expand=True)
+    rpt_scroll.pack(side="right", fill="y")
+
+    lines = []
+    run = report.get("Run", {})
+    lines.append("RUN")
+    lines.append(f"  Mode                 : {run.get('mode', mode)}")
+    lines.append(f"  Input file           : {run.get('inputFile', 'n/a')}")
+    lines.append(f"  Timestamp            : {run.get('timestamp', 'n/a')}")
+    _scope = run.get("scopeFMPs")
+    lines.append(f"  FMP scope            : {', '.join(_scope) if _scope else scope_txt}")
+    lines.append(f"  Source               : {run.get('source', 'n/a')}")
+
+    ref = report.get("ReferenceData", {})
+    if ref:
+        lines.append("")
+        lines.append("REFERENCE DATA LOADED")
+        for k, v in ref.items():
+            lines.append(f"  {k:<20}: {v}")
+
+    parse = report.get("CsvParse", {})
+    if parse:
+        lines.append("")
+        lines.append("CSV PARSE")
+        lines.append(f"  {'rowsRead':<20}: {parse.get('rowsRead', 0)}")
+        lines.append(f"  {'parseErrors':<20}: {parse.get('parseErrors', 0)}")
+        for errrow in parse.get("parseErrorRows", []) or []:
+            lines.append(f"      ! {errrow}")
+
+    cnts = report.get("Counts", {})
+    if cnts:
+        lines.append("")
+        lines.append("CLASSIFICATION COUNTS")
+        for k, v in cnts.items():
+            lines.append(f"  {str(k):<20}: {v}")
+
+    acts = report.get("ActionsQueued", {})
+    if acts:
+        lines.append("")
+        lines.append("ACTIONS QUEUED")
+        for k, v in acts.items():
+            lines.append(f"  {k:<20}: {v}")
+
+    outs = report.get("Outputs", [])
+    lines.append("")
+    lines.append("OUTPUTS")
+    if outs:
+        for o in outs:
+            lines.append(f"  {o}")
+    else:
+        lines.append("  (none)")
+    if report.get("dailyImportsDir"):
+        lines.append(f"  dailyImportsDir      : {report.get('dailyImportsDir')}")
+
+    rpt_text.insert("1.0", "\n".join(lines))
+    rpt_text.configure(state="disabled")
+
+    # --- Per-line detail table (what to look up in e-Builder) ---
+    det_frame = ttk.LabelFrame(win, text=f"Records this run will act on ({len(details)})")
+    det_frame.pack(fill="both", expand=True, padx=10, pady=6)
+    cols = ("Action", "PO No", "Commitment", "InvoiceBW", "InvoiceEB", "Amount", "Project", "LookFor")
+    headers = {"InvoiceBW": "Invoice (BW)", "InvoiceEB": "EB Invoice", "LookFor": "Look for"}
+    tree = ttk.Treeview(det_frame, columns=cols, show="headings")
+    for c in cols:
+        tree.heading(c, text=headers.get(c, c))
+        tree.column(c, width=120, anchor="w")
+    tree.column("LookFor", width=260)
+    det_scroll = ttk.Scrollbar(det_frame, orient="vertical", command=tree.yview)
+    tree.configure(yscrollcommand=det_scroll.set)
+    tree.pack(side="left", fill="both", expand=True)
+    det_scroll.pack(side="right", fill="y")
+
+    order = {"Payable->Paid": 0, "Change Order": 1, "Follow-up (-1)": 2, "New Invoice": 3}
+    for d in sorted(details, key=lambda x: order.get(x.get("Action", ""), 9)):
+        tree.insert("", "end", values=tuple(d.get(c, "") for c in cols))
+
+    ttk.Button(win, text="Close", command=_close).pack(pady=(4, 10))
+    win.grab_set()
+
+
 def run_bw2eb():
     global supportFile, CSVfile
     if CSVfile == "":
@@ -103,18 +223,9 @@ def run_bw2eb():
         eb.set_scope_fmps(None)
     print(res)
 
-    if isinstance(res, dict):
-        s = res.get("Stats", {})
-        verb = "would flip" if dry else "flipped"
-        lines = [f"Complete - {mode}", f"Scope: {scope_txt}"]
-        if "PaidUpdate" in s:
-            lines += [f"  Invoices {verb} Payable->Paid : {s.get('PaidUpdate', 0)}",
-                      f"  Commitment change orders     : {s.get('ChangeOrder', 0)}",
-                      f"  Shipping/discount (-1) lines : {s.get('FollowupLine', 0)}"]
-        lines.append(f"  New-invoice import workbook  : {res.get('ImportFile', 'n/a')}")
-        lblResults.config(text="\n".join(lines))
-    else:
-        lblResults.config(text="Complete: " + str(res))
+    # Brief inline status; the full report + per-line detail is in the modal.
+    lblResults.config(text=f"Last run: complete - {mode}\nScope: {scope_txt}")
+    show_run_results(res, mode, scope_txt, dry)
 
 def run_monthStat():
     try:
