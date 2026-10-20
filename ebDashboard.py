@@ -191,39 +191,17 @@ def show_run_results(res, mode, scope_txt, dry):
 
 def run_bw2eb():
     global supportFile, CSVfile
+    # clear results, in case we already ran
+    lblResults.config(text="Results\nRunning Buyways to e-Builder")
     if CSVfile == "":
         mb.showwarning(title=None, message="No CSV file selected: can't run bw2eb")
-        return
-
-    # Apply the UI control: dry-run toggle. (FMP scope is always all projects.)
-    dry = bool(dryRunVar.get())
-    eb.set_dry_run_override(dry)
-    eb.set_scope_fmps(None)
-
-    mode = "DRY RUN - preview only, nothing posted" if dry else "LIVE - posting to e-Builder"
-    scope_txt = "ALL projects"
-
-    # Live runs are irreversible; make the user confirm.
-    if not dry:
-        if not mb.askyesno(title="Confirm LIVE run",
-                           message=f"This will POST to e-Builder for {scope_txt}.\n\nProceed?"):
-            eb.set_dry_run_override(None); eb.set_scope_fmps(None)
-            lblResults.config(text="Cancelled (live run not confirmed).")
-            return
-
-    lblResults.config(text=f"Running Buyways to e-Builder...\nMode: {mode}\nScope: {scope_txt}")
-    lblResults.update_idletasks()
-    try:
+    else:
         res = bw2eb.main(CSVfile)
-    finally:
-        # never let the override/scope leak into a later run
-        eb.set_dry_run_override(None)
-        eb.set_scope_fmps(None)
-    print(res)
-
-    # Brief inline status; the full report + per-line detail is in the modal.
-    lblResults.config(text=f"Last run: complete - {mode}\nScope: {scope_txt}")
-    show_run_results(res, mode, scope_txt, dry)
+        print(res)
+        if type(res) == dict:
+            lblResults.config(text=("Complete. Excel files are saved in: " + res['ImportFile']))
+        else:
+            lblResults.config(text=("Complete. Excel files are saved in: " + res))
 
 def run_monthStat():
     try:
@@ -258,17 +236,39 @@ def run_ebData():
         lbl_ebDataresults.config(text="ebData failed:\n" + str(e) + "\n\n" + get_eb_data_status_text())
 
 def run_bw2ebJoined():
-    res = bw2ebJoined.main()
-    # print(res)
-    # print(type(res["POImport"]))
-    resStr = "Complete. BW Reports extracted and imported" + "\n"
-    for i in res:
-        resStr += str(i) + "\n"
-    # resStr += "PO Import Report saved at: " + str(res["POImport"]) + "\n"
-    # resStr += "Invoice Import Report saved at: " + str(res["InvoiceImport"]) + "\n"
-    # resStr += "PO Import Totals saved at: " + str(res["POTotals"]) + "\n"
-    # resStr += "Invoice Import Totals saved at: " + str(res["InvoiceTotals"])
-    lbl_bwebJoinedresults.config(text=resStr)
+    """The real daily path: process the Buyways PO + invoice zip files from
+    fromBuyways_reports and (on a live run) post to e-Builder. The dry-run
+    toggle, the live-run confirmation, and the per-line summary modal live
+    here -- this is the button the client actually uses."""
+    # Apply the UI control: dry-run toggle. (FMP scope is always all projects.)
+    dry = bool(dryRunVar.get())
+    eb.set_dry_run_override(dry)
+    eb.set_scope_fmps(None)
+
+    mode = "DRY RUN - preview only, nothing posted" if dry else "LIVE - posting to e-Builder"
+    scope_txt = "ALL projects"
+
+    # Live runs are irreversible; make the user confirm.
+    if not dry:
+        if not mb.askyesno(title="Confirm LIVE run",
+                           message=f"This will POST to e-Builder for {scope_txt}.\n\nProceed?"):
+            eb.set_dry_run_override(None); eb.set_scope_fmps(None)
+            lbl_bwebJoinedresults.config(text="Cancelled (live run not confirmed).")
+            return
+
+    lbl_bwebJoinedresults.config(text=f"Running Buyways (zip) to e-Builder...\nMode: {mode}\nScope: {scope_txt}")
+    lbl_bwebJoinedresults.update_idletasks()
+    try:
+        res = bw2ebJoined.main()
+    finally:
+        # never let the override/scope leak into a later run
+        eb.set_dry_run_override(None)
+        eb.set_scope_fmps(None)
+    print(res)
+
+    # Brief inline status; the full report + per-line detail is in the modal.
+    lbl_bwebJoinedresults.config(text=f"Last run: complete - {mode}\nScope: {scope_txt}")
+    show_run_results(res, mode, scope_txt, dry)
 
 def run_bw2ebXML():
     res = bw2ebXML.main()
@@ -371,29 +371,30 @@ btn_csv.grid(column=1, row=5, padx=xdPad, pady=ydPad, sticky=tk.W)
 label_csv = ttk.Label(frame_bw2eb, text="No file selected")
 label_csv.grid(column=1, row=6, padx=xdPad, pady=ydPad, sticky=tk.W)
 
-# Dry-run toggle (checked = preview only, nothing posted to e-Builder)
-dryRunVar = tk.BooleanVar(value=True)
-chk_dryrun = ttk.Checkbutton(frame_bw2eb,
-    text="Dry run (preview only - do NOT post to e-Builder)", variable=dryRunVar)
-chk_dryrun.grid(column=1, row=7, padx=xdPad, pady=ydPad, sticky=tk.W)
-
 btn_run = ttk.Button(frame_bw2eb, text="Run bw2eb", command=run_bw2eb, width=dWidth)
 btn_run.grid(column=1, row=10, padx=xdPad, pady=ydPad, sticky=tk.W)
 
 lblResults = ttk.Label(frame_bw2eb, text="Buyways File import Results:\n...", anchor="w")
 lblResults.grid(column=1, row=11, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
 
+# Dry-run toggle for the zip import below (Run bwebJoined): checked = preview
+# only (nothing posted to e-Builder); unchecked = live, with a confirmation.
+dryRunVar = tk.BooleanVar(value=True)
+chk_dryrun = ttk.Checkbutton(frame_bw2eb,
+    text="Dry run (preview only - do NOT post to e-Builder) -- applies to Run bwebJoined", variable=dryRunVar)
+chk_dryrun.grid(column=1, row=12, padx=xdPad, pady=ydPad, sticky=tk.W)
+
 btn_bwebJoined = ttk.Button(frame_bw2eb, text="Run bwebJoined", command=run_bw2ebJoined, width=dWidth)
-btn_bwebJoined.grid(column=1, row=12, padx=xdPad, pady=ydPad, sticky=tk.W)
+btn_bwebJoined.grid(column=1, row=13, padx=xdPad, pady=ydPad, sticky=tk.W)
 
 lbl_bwebJoinedresults = ttk.Label(frame_bw2eb, text="Buways Files Import Results:\n...\n...\n...", anchor="w")
-lbl_bwebJoinedresults.grid(column=1, row=13, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
+lbl_bwebJoinedresults.grid(column=1, row=14, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
 
 btn_bwebXML = ttk.Button(frame_bw2eb, text="Run bweb XML", command=run_bw2ebXML, width=dWidth)
-btn_bwebXML.grid(column=1, row=14, padx=xdPad, pady=ydPad, sticky=tk.W)
+btn_bwebXML.grid(column=1, row=15, padx=xdPad, pady=ydPad, sticky=tk.W)
 
 lbl_bwebXMLresults = ttk.Label(frame_bw2eb, text="Buways Files Import Results:\n...\n...\n...", anchor="w")
-lbl_bwebXMLresults.grid(column=1, row=15, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
+lbl_bwebXMLresults.grid(column=1, row=16, padx=xdPad, pady=(2 * ydPad), sticky=tk.W)
 
 # Time Allocation
 frame_timeAlloc = ttk.LabelFrame(window, text="Time Alocation Reports")

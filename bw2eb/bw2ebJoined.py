@@ -243,8 +243,55 @@ def main():
     #          }
 
     files = joinedImportFiles
-    print(files)
-    return files
+
+    # Aggregate the per-file invoice Report/Details so the dashboard's summary
+    # modal (show_run_results) can preview exactly what this zip run will do.
+    # PO translation returns no Details/Report, so these come from the invoices.
+    allDetails = []
+    actionsQueued = {"paidUpdates": 0, "changeOrders": 0, "followupLines": 0, "newInvoiceRows": 0}
+    for inv in bw2ebInvs:
+        if isinstance(inv, dict):
+            allDetails.extend(inv.get("Details", []) or [])
+            aq = (inv.get("Report", {}) or {}).get("ActionsQueued", {}) or {}
+            for k in actionsQueued:
+                try:
+                    actionsQueued[k] += int(aq.get(k, 0) or 0)
+                except (TypeError, ValueError):
+                    pass
+
+    # Reflects the dry-run override set by the dashboard before this run.
+    dry_run = ebAPI.get_dry_run()
+
+    combinedCounts = {}
+    for k, v in POCounts.items():
+        combinedCounts["PO " + str(k)] = v
+    for k, v in InvoiceCounts.items():
+        combinedCounts["Invoice " + str(k)] = v
+
+    report = {
+        "Run": {
+            "mode": "DRY RUN" if dry_run else "LIVE",
+            "dry_run": dry_run,
+            "inputFile": "; ".join(os.path.basename(z) for z in zip_files)
+                         if zip_files else "(no zip files found in fromBuyways_reports)",
+            "timestamp": currStamp,
+            "source": "CSV_ZIP",
+            "scopeFMPs": ebAPI.get_scope_fmps(),
+        },
+        "Counts": combinedCounts,
+        "ActionsQueued": actionsQueued,
+        "Outputs": joinedImportFiles,
+        "dailyImportsDir": daily_imports_dir,
+    }
+
+    result = {
+        "Report": report,
+        "Details": allDetails,
+        "Outputs": joinedImportFiles,
+        "ImportFiles": joinedImportFiles,
+    }
+    print(result)
+    return result
 
 
 if __name__ == "__main__":
